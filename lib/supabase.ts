@@ -1,10 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Check if Supabase is configured
+const isSupabaseConfigured = () => {
+  return supabaseUrl && 
+         supabaseAnonKey &&
+         supabaseUrl.startsWith('http') &&
+         !supabaseUrl.includes('placeholder') &&
+         !supabaseUrl.includes('your_supabase');
+};
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Only create if properly configured, otherwise create a dummy client
+export const supabase = isSupabaseConfigured() 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null as any;
 
 // Type definitions for our database
 export interface Lead {

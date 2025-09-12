@@ -28,6 +28,7 @@ export interface LeadData {
   email?: string;
   message?: string;
   createdAt?: Date;
+  verified?: boolean;
 }
 
 export interface ChatState {
