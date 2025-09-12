@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 다크모드 컬러 시스템 */
+    --primary: 177 100% 45%;           /* #00E5DB 밝은 민트 (다크모드용) */
+    --primary-foreground: 0 0% 100%;   /* 흰색 텍스트 */
+    --primary-dark: 177 100% 35%;      /* 어두운 민트 */
+    --primary-light: 177 100% 55%;     /* 밝은 민트 */
+    
+    --secondary: 216 100% 62%;         /* #4DA3FF 밝은 파란색 */
+    --secondary-foreground: 0 0% 100%; /* 흰색 텍스트 */
+    
+    /* 다크 배경 */
+    --background: 220 20% 10%;         /* #141821 메인 배경 */
+    --foreground: 0 0% 95%;             /* #F2F2F2 밝은 텍스트 */
+    
+    --card: 220 15% 13%;                /* #1A1F2E 카드 배경 */
+    --card-foreground: 0 0% 95%;        /* 카드 텍스트 */
+    
+    --popover: 220 15% 13%;             /* 팝오버 배경 */
+    --popover-foreground: 0 0% 95%;     /* 팝오버 텍스트 */
+    
+    --muted: 220 15% 20%;               /* #252B3B 연한 배경 */
+    --muted-foreground: 0 0% 65%;       /* 연한 텍스트 */
+    
+    --accent: 30 100% 60%;              /* #FF9933 주황색 강조 */
+    --accent-foreground: 0 0% 100%;     /* 흰색 텍스트 */
+    
+    --destructive: 0 84% 60%;           /* 빨간색 */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 220 15% 25%;              /* #2E3544 보더 */
+    --input: 220 15% 25%;               /* 입력 필드 보더 */
+    --ring: 177 100% 45%;               /* 포커스 링 */
+    
+    --radius: 0.625rem;                 /* 기본 border-radius */
+    
+    /* 그림자 (다크모드용) */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(0, 229, 219, 0.2);
+    
+    /* 차트 컬러 */
+    --chart-1: 177 100% 45%;
+    --chart-2: 216 100% 62%;
+    --chart-3: 30 100% 60%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+}
+
+@layer components {
+  /* 다크모드 카드 */
+  .dark-card {
+    @apply bg-[#1A1F2E] rounded-xl shadow-lg border border-[#2E3544] hover:shadow-xl hover:border-[#00E5DB]/30 transition-all duration-200;
+  }
+  
+  /* 다크모드 버튼 */
+  .dark-button {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.98];
+  }
+  
+  .dark-button-primary {
+    @apply bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900 hover:from-[#00F5EB] hover:to-[#00D7CE] shadow-[0_0_20px_rgba(0,229,219,0.3)];
+  }
+  
+  .dark-button-secondary {
+    @apply bg-[#1A1F2E] text-[#00E5DB] border border-[#00E5DB]/30 hover:bg-[#00E5DB]/10 hover:border-[#00E5DB]/50;
+  }
+  
+  /* 다크모드 입력 필드 */
+  .dark-input {
+    @apply w-full px-4 py-3 rounded-lg bg-[#1A1F2E] border border-[#2E3544] text-gray-200 placeholder-gray-500 focus:border-[#00E5DB] focus:ring-2 focus:ring-[#00E5DB]/30 transition-all duration-200;
+  }
+  
+  /* 네온 글로우 효과 */
+  .neon-glow {
+    text-shadow: 0 0 10px rgba(0, 229, 219, 0.5), 0 0 20px rgba(0, 229, 219, 0.3);
+  }
+  
+  .neon-border {
+    box-shadow: 0 0 15px rgba(0, 229, 219, 0.2), inset 0 0 15px rgba(0, 229, 219, 0.1);
+  }
+  
+  /* 부드러운 애니메이션 */
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  .pulse-glow {
+    animation: pulseGlow 2s infinite;
+  }
+}
+
+@layer utilities {
+  /* 그라데이션 */
+  .gradient-dark {
+    background: linear-gradient(135deg, #141821 0%, #1A1F2E 100%);
+  }
+  
+  .gradient-neon {
+    background: linear-gradient(135deg, #00E5DB 0%, #4DA3FF 100%);
+  }
+  
+  .text-gradient-neon {
+    background: linear-gradient(135deg, #00E5DB 0%, #4DA3FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* 글래스모피즘 효과 (다크) */
+  .glass-dark {
+    @apply bg-[#1A1F2E]/60 backdrop-blur-xl border border-[#2E3544]/50;
+  }
+  
+  /* 호버 효과 */
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg;
+  }
+  
+  /* 부드러운 스크롤 */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+}
+
+/* 애니메이션 키프레임 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 229, 219, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 229, 219, 0.4);
+  }
+}
+
+/* 스크롤바 스타일링 (다크모드) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1A1F2E;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00E5DB;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00C7BE;
+}
