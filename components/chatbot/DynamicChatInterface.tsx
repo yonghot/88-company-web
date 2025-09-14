@@ -1,0 +1,375 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { ChatMessage } from './ChatMessage';
+import { ChatInput } from './ChatInput';
+import { ProgressBar } from './ProgressBar';
+import { QuickReplyOptions } from './QuickReplyOptions';
+import { VerificationInput } from './VerificationInput';
+import { Message, ChatState, LeadData } from '@/lib/types';
+import { getDynamicChatFlow } from '@/lib/chat/dynamic-flow';
+import { chatFlow as staticFlow, validateInput } from '@/lib/chat/flow';
+import { v4 as uuidv4 } from 'uuid';
+import { Sparkles, MessageCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const TOTAL_STEPS = 7;
+
+export function DynamicChatInterface() {
+  const [chatState, setChatState] = useState<ChatState>({
+    currentStep: 'service_type',
+    messages: [],
+    leadData: {},
+    isCompleted: false
+  });
+
+  const [isTyping, setIsTyping] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [dynamicFlow, setDynamicFlow] = useState<any>(null);
+  const [isLoadingFlow, setIsLoadingFlow] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatState.messages]);
+
+  useEffect(() => {
+    loadDynamicFlow();
+  }, []);
+
+  const loadDynamicFlow = async () => {
+    setIsLoadingFlow(true);
+    try {
+      const flowService = getDynamicChatFlow();
+      const flow = await flowService.getFlow();
+      const startStep = await flowService.getStartStep();
+
+      setDynamicFlow(flow);
+      setChatState(prev => ({
+        ...prev,
+        currentStep: startStep
+      }));
+
+      const welcomeStep = flow[startStep] || staticFlow.welcome;
+      const welcomeMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: welcomeStep.question,
+        timestamp: new Date()
+      };
+
+      setChatState(prev => ({
+        ...prev,
+        messages: [welcomeMessage]
+      }));
+    } catch (error) {
+      console.error('Failed to load dynamic flow, using static:', error);
+      setDynamicFlow(staticFlow);
+
+      const welcomeMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: staticFlow.welcome.question,
+        timestamp: new Date()
+      };
+
+      setChatState(prev => ({
+        ...prev,
+        currentStep: 'welcome',
+        messages: [welcomeMessage]
+      }));
+    } finally {
+      setIsLoadingFlow(false);
+    }
+  };
+
+  const getCurrentFlow = () => {
+    return dynamicFlow || staticFlow;
+  };
+
+  const handleUserInput = async (value: string) => {
+    const flow = getCurrentFlow();
+    const currentStep = flow[chatState.currentStep];
+
+    if (!currentStep) {
+      console.error('Current step not found:', chatState.currentStep);
+      return;
+    }
+
+    if (currentStep.validation && !currentStep.validation(value)) {
+      const errorMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: '입력하신 정보가 올바르지 않습니다. 다시 확인해주세요.',
+        timestamp: new Date()
+      };
+      setChatState(prev => ({
+        ...prev,
+        messages: [...prev.messages, errorMessage]
+      }));
+      return;
+    }
+
+    const userMessage: Message = {
+      id: uuidv4(),
+      type: 'user',
+      content: value,
+      timestamp: new Date()
+    };
+
+    setChatState(prev => ({
+      ...prev,
+      messages: [...prev.messages, userMessage]
+    }));
+
+    const updatedLeadData: LeadData = { ...chatState.leadData };
+
+    const stepMapping: Record<string, keyof LeadData> = {
+      'service_type': 'service',
+      'welcome': 'service',
+      'customService': 'service',
+      'service_details': 'service',
+      'budget': 'budget',
+      'timeline': 'timeline',
+      'details': 'message',
+      'additional_info': 'message',
+      'name': 'name',
+      'phone': 'phone'
+    };
+
+    const dataKey = stepMapping[chatState.currentStep];
+    if (dataKey) {
+      (updatedLeadData as any)[dataKey] = value;
+    }
+
+    if (chatState.currentStep === 'phone') {
+      setPhoneNumber(value);
+    }
+
+    setIsTyping(true);
+    setTimeout(async () => {
+      setIsTyping(false);
+
+      const nextStepId = currentStep.nextStep ? currentStep.nextStep(value) : null;
+
+      if (nextStepId && flow[nextStepId]) {
+        const nextStep = flow[nextStepId];
+        const botMessage: Message = {
+          id: uuidv4(),
+          type: 'bot',
+          content: nextStep.question,
+          timestamp: new Date()
+        };
+
+        setChatState(prev => ({
+          ...prev,
+          currentStep: nextStepId,
+          messages: [...prev.messages, botMessage],
+          leadData: updatedLeadData
+        }));
+      } else if (chatState.currentStep === 'complete' || nextStepId === 'complete') {
+        setChatState(prev => ({
+          ...prev,
+          isCompleted: true,
+          leadData: updatedLeadData
+        }));
+      }
+    }, 1000);
+  };
+
+  const handleVerificationComplete = async () => {
+    const updatedLeadData: LeadData = {
+      ...chatState.leadData,
+      phone: phoneNumber,
+      verified: true
+    };
+
+    try {
+      const leadId = phoneNumber.replace(/[^0-9]/g, '');
+
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...updatedLeadData,
+          id: leadId,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save lead');
+      }
+
+      const flow = getCurrentFlow();
+      const completeStep = flow['complete'] || {
+        question: '🎉 등록이 완료되었습니다!\n\n빠른 시일 내에 연락드리겠습니다.\n88 Company와 함께 성공적인 창업을 시작하세요!'
+      };
+
+      const thankYouMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: completeStep.question,
+        timestamp: new Date()
+      };
+
+      setChatState(prev => ({
+        ...prev,
+        messages: [...prev.messages, thankYouMessage],
+        leadData: updatedLeadData,
+        isCompleted: true
+      }));
+    } catch (error) {
+      console.error('Error saving lead:', error);
+
+      const errorMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: '죄송합니다. 등록 중 오류가 발생했습니다. 다시 시도해주세요.',
+        timestamp: new Date()
+      };
+
+      setChatState(prev => ({
+        ...prev,
+        messages: [...prev.messages, errorMessage]
+      }));
+    }
+  };
+
+  const getProgressSteps = () => {
+    const flow = getCurrentFlow();
+    const currentStepObj = flow[chatState.currentStep];
+    if (!currentStepObj) return 1;
+
+    const orderedSteps = [
+      'service_type', 'welcome', 'customService', 'service_details',
+      'budget', 'timeline', 'details', 'additional_info',
+      'name', 'phone', 'complete'
+    ];
+
+    const currentIndex = orderedSteps.indexOf(chatState.currentStep);
+    return Math.min(Math.max(1, currentIndex + 1), TOTAL_STEPS);
+  };
+
+  if (isLoadingFlow) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-600 animate-pulse" />
+          <p className="text-gray-600 dark:text-gray-400">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const flow = getCurrentFlow();
+  const currentStep = flow[chatState.currentStep];
+
+  if (!currentStep) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <p className="text-red-600">오류가 발생했습니다. 페이지를 새로고침해주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6 text-white" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">88 Company</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">온라인 상담</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 dark:text-gray-400">평균 응답시간</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">1분 이내</p>
+            </div>
+          </div>
+          {!chatState.isCompleted && (
+            <ProgressBar currentStep={getProgressSteps()} totalSteps={TOTAL_STEPS} />
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {chatState.messages.map((message) => (
+            <ChatMessage key={message.id} message={message} />
+          ))}
+          {isTyping && (
+            <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+              <span className="text-sm">입력 중...</span>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {!chatState.isCompleted && !isTyping && (
+        <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-4 py-4">
+          <div className="max-w-4xl mx-auto">
+            {currentStep.inputType === 'select' && currentStep.options && (
+              <QuickReplyOptions
+                options={currentStep.options}
+                onSelect={handleUserInput}
+              />
+            )}
+            {currentStep.inputType !== 'select' && chatState.currentStep !== 'phone' && (
+              <ChatInput
+                placeholder={currentStep.placeholder}
+                onSend={handleUserInput}
+                inputType={currentStep.inputType}
+              />
+            )}
+            {chatState.currentStep === 'phone' && (
+              <VerificationInput
+                onVerified={handleVerificationComplete}
+                initialPhone={phoneNumber}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {chatState.isCompleted && (
+        <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-4 py-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center">
+              <Sparkles className="w-12 h-12 mx-auto mb-3 text-purple-600" />
+              <p className="text-gray-600 dark:text-gray-400">상담이 완료되었습니다</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                새로운 상담 시작하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

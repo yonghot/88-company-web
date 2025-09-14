@@ -18,24 +18,5 @@ export const supabase = isSupabaseConfigured()
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null as any;
 
-// Type definitions for our database
-export interface Lead {
-  id: string; // phone number as ID
-  service: string;
-  budget: string;
-  timeline: string;
-  message: string;
-  name: string;
-  phone: string;
-  verified: boolean;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface VerificationCode {
-  id: string;
-  phone: string;
-  code: string;
-  expires_at: string;
-  created_at: string;
-}
+// Import database types
+export { Lead, VerificationCode } from './database/types';

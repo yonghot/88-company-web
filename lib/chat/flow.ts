@@ -1,5 +1,5 @@
 import { ChatStep } from './types';
-import { chatQuestions, getNextStepId as getNextId } from './chat-questions';
+import { chatQuestions, getNextStepId as getNextId } from './questions';
 
 export const chatFlow: Record<string, ChatStep> = {
   welcome: {

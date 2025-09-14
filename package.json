@@ -6,15 +6,19 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate": "node scripts/migrate-to-supabase.js",
+    "db:setup": "echo 'Please run the SQL schema in Supabase dashboard'",
+    "test:sms": "tsx scripts/test-sms-verification.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.57.4",
-    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.21",
+    "chalk": "^5.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.2",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
     "postcss": "^8.5.6",
@@ -23,6 +27,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
+    "twilio": "^5.9.0",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
   },
@@ -33,6 +38,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
+    "tsx": "^4.20.5",
     "typescript": "^5"
   }
 }

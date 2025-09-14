@@ -1,210 +1,264 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import fs from 'fs/promises';
-import path from 'path';
+import { VerificationService } from '@/lib/sms/verification-service';
+import { headers } from 'next/headers';
 
-// In-memory storage for development/fallback
-const VERIFICATION_CODES = new Map<string, { code: string; expiry: number }>();
-const LEADS_FILE = path.join(process.cwd(), 'data', 'leads.json');
+// 통합 인증 서비스 인스턴스
+const verificationService = VerificationService.getInstance();
 
-// Check if Supabase is configured
-const isSupabaseConfigured = () => {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL && 
-         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-         !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_supabase');
-};
+/**
+ * 관리자 인증 확인
+ */
+function isAdmin(): boolean {
+  const headersList = headers();
+  const authHeader = headersList.get('authorization');
+  const adminKey = process.env.ADMIN_SECRET_KEY;
 
-// Helper function to generate a 6-digit verification code
-function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+  // 개발 환경에서는 인증 스킵 가능
+  if (process.env.NODE_ENV === 'development' && !adminKey) {
+    return true;
+  }
 
-// Helper function to check if phone number already exists (file system)
-async function phoneNumberExistsInFile(phone: string): Promise<boolean> {
-  try {
-    const data = await fs.readFile(LEADS_FILE, 'utf-8');
-    const leads = JSON.parse(data);
-    return leads.some((lead: any) => lead.id === phone);
-  } catch (error) {
+  if (!adminKey || !authHeader) {
     return false;
   }
+
+  // Bearer 토큰 형식 확인
+  const token = authHeader.replace('Bearer ', '');
+  return token === adminKey;
 }
 
-// POST /api/verify - Send verification code
+/**
+ * IP 주소 추출
+ */
+function getClientIP(): string {
+  const headersList = headers();
+
+  // Vercel 환경
+  const forwardedFor = headersList.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  // Cloudflare 환경
+  const cfConnectingIP = headersList.get('cf-connecting-ip');
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+
+  // 일반 프록시
+  const realIP = headersList.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+
+  return 'unknown';
+}
+
+/**
+ * POST /api/verify
+ * 휴대폰 번호 인증 API
+ *
+ * @param action - 'send' (인증번호 발송) 또는 'verify' (인증번호 확인)
+ * @param phone - 휴대폰 번호
+ * @param code - 인증번호 (verify 액션에서만 필요)
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { action, phone, code } = body;
 
-    // Normalize phone number (remove dashes)
-    const normalizedPhone = phone?.replace(/-/g, '');
+    // 클라이언트 정보 수집 (로깅용)
+    const clientIP = getClientIP();
+    const userAgent = headers().get('user-agent') || 'unknown';
 
+    // 로깅 (프로덕션에서는 민감 정보 제외)
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`[SMS API] Action: ${action}, IP: ${clientIP}, Time: ${new Date().toISOString()}`);
+    } else {
+      console.log(`[SMS API] Action: ${action}, Phone: ${phone}, IP: ${clientIP}`);
+    }
+
+    // 입력 검증
+    if (!action || !phone) {
+      return NextResponse.json(
+        { error: '필수 파라미터가 누락되었습니다' },
+        { status: 400 }
+      );
+    }
+
+    // 전화번호 형식 검증 (더 엄격한 검증)
+    const phoneRegex = /^(010|011|016|017|018|019)[-]?\d{3,4}[-]?\d{4}$/;
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+
+    if (!phoneRegex.test(phone) && !phoneRegex.test(cleanPhone)) {
+      return NextResponse.json(
+        { error: '올바른 휴대폰 번호 형식이 아닙니다' },
+        { status: 400 }
+      );
+    }
+
+    // 인증번호 발송
     if (action === 'send') {
-      if (isSupabaseConfigured()) {
-        // Check if phone number already exists in Supabase
-        const { data: existingLeads } = await supabase
-          .from('leads')
-          .select('id')
-          .eq('id', normalizedPhone);
+      const result = await verificationService.sendVerificationCode(phone);
 
-        if (existingLeads && existingLeads.length > 0) {
-          return NextResponse.json(
-            { error: '이미 등록된 휴대폰 번호입니다.' },
-            { status: 400 }
-          );
-        }
+      if (!result.success) {
+        // 프로덕션에서는 구체적인 오류 숨김
+        const errorMessage = process.env.NODE_ENV === 'production'
+          ? '인증번호 발송에 실패했습니다'
+          : result.error || '인증번호 발송에 실패했습니다';
 
-        // Generate and store verification code in Supabase
-        const verificationCode = generateVerificationCode();
-        const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 minutes
-
-        // Clean up old codes for this phone number
-        await supabase
-          .from('verification_codes')
-          .delete()
-          .eq('phone', normalizedPhone);
-
-        // Insert new verification code
-        const { error } = await supabase
-          .from('verification_codes')
-          .insert([{
-            phone: normalizedPhone,
-            code: verificationCode,
-            expires_at: expiresAt.toISOString()
-          }]);
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-
-        console.log(`[DEMO] Verification code for ${phone}: ${verificationCode}`);
-
-        return NextResponse.json({ 
-          success: true,
-          message: '인증번호가 발송되었습니다.',
-          demoCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined
-        });
-      } else {
-        // Fallback to file system and in-memory storage
-        const exists = await phoneNumberExistsInFile(normalizedPhone);
-        if (exists) {
-          return NextResponse.json(
-            { error: '이미 등록된 휴대폰 번호입니다.' },
-            { status: 400 }
-          );
-        }
-
-        const verificationCode = generateVerificationCode();
-        const expiry = Date.now() + 3 * 60 * 1000;
-        
-        VERIFICATION_CODES.set(normalizedPhone, { code: verificationCode, expiry });
-        console.log(`[DEMO] Verification code for ${phone}: ${verificationCode}`);
-
-        return NextResponse.json({ 
-          success: true,
-          message: '인증번호가 발송되었습니다.',
-          demoCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined
-        });
+        return NextResponse.json(
+          {
+            error: errorMessage,
+            message: result.message
+          },
+          { status: 400 }
+        );
       }
+
+      // 프로덕션에서는 절대 인증번호 반환하지 않음
+      const response: any = {
+        success: true,
+        message: result.message
+      };
+
+      // 개발 환경에서만 데모 코드 반환
+      if (process.env.NODE_ENV !== 'production' && process.env.SHOW_DEMO_CODE !== 'false') {
+        response.demoCode = result.demoCode;
+      }
+
+      return NextResponse.json(response);
     }
 
+    // 인증번호 확인
     if (action === 'verify') {
-      if (isSupabaseConfigured()) {
-        // Get verification code from Supabase
-        const { data: codes, error } = await supabase
-          .from('verification_codes')
-          .select('*')
-          .eq('phone', normalizedPhone)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (error || !codes || codes.length === 0) {
-          return NextResponse.json(
-            { error: '인증번호를 먼저 요청해주세요.' },
-            { status: 400 }
-          );
-        }
-
-        const storedCode = codes[0];
-        
-        // Check if code has expired
-        if (new Date() > new Date(storedCode.expires_at)) {
-          // Delete expired code
-          await supabase
-            .from('verification_codes')
-            .delete()
-            .eq('id', storedCode.id);
-
-          return NextResponse.json(
-            { error: '인증번호가 만료되었습니다. 다시 요청해주세요.' },
-            { status: 400 }
-          );
-        }
-
-        // Verify the code
-        if (storedCode.code !== code) {
-          return NextResponse.json(
-            { error: '인증번호가 일치하지 않습니다.' },
-            { status: 400 }
-          );
-        }
-
-        // Code is valid - delete it
-        await supabase
-          .from('verification_codes')
-          .delete()
-          .eq('id', storedCode.id);
-
-        return NextResponse.json({ 
-          success: true,
-          verified: true,
-          message: '인증이 완료되었습니다.'
-        });
-      } else {
-        // Fallback to in-memory storage
-        const storedData = VERIFICATION_CODES.get(normalizedPhone);
-
-        if (!storedData) {
-          return NextResponse.json(
-            { error: '인증번호를 먼저 요청해주세요.' },
-            { status: 400 }
-          );
-        }
-
-        if (Date.now() > storedData.expiry) {
-          VERIFICATION_CODES.delete(normalizedPhone);
-          return NextResponse.json(
-            { error: '인증번호가 만료되었습니다. 다시 요청해주세요.' },
-            { status: 400 }
-          );
-        }
-
-        if (storedData.code !== code) {
-          return NextResponse.json(
-            { error: '인증번호가 일치하지 않습니다.' },
-            { status: 400 }
-          );
-        }
-
-        VERIFICATION_CODES.delete(normalizedPhone);
-        return NextResponse.json({ 
-          success: true,
-          verified: true,
-          message: '인증이 완료되었습니다.'
-        });
+      if (!code) {
+        return NextResponse.json(
+          { error: '인증번호를 입력해주세요' },
+          { status: 400 }
+        );
       }
+
+      // 인증번호 형식 검증 (6자리 숫자)
+      if (!/^\d{6}$/.test(code)) {
+        return NextResponse.json(
+          { error: '올바른 인증번호 형식이 아닙니다' },
+          { status: 400 }
+        );
+      }
+
+      const result = await verificationService.verifyCode(phone, code);
+
+      if (!result.success) {
+        // 프로덕션에서는 구체적인 오류 숨김
+        const errorMessage = process.env.NODE_ENV === 'production'
+          ? '인증에 실패했습니다'
+          : result.error || '인증에 실패했습니다';
+
+        return NextResponse.json(
+          {
+            error: errorMessage,
+            message: result.message,
+            verified: false
+          },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        verified: true,
+        message: result.message
+      });
     }
 
+    // 잘못된 액션
     return NextResponse.json(
-      { error: 'Invalid action' },
+      { error: '올바르지 않은 요청입니다' },
       { status: 400 }
     );
+
   } catch (error) {
-    console.error('Verification error:', error);
+    console.error('인증 API 오류:', error);
+
+    // 프로덕션에서는 내부 오류 정보 숨김
+    const errorMessage = process.env.NODE_ENV === 'production'
+      ? '서버 오류가 발생했습니다'
+      : `서버 오류: ${error instanceof Error ? error.message : 'Unknown error'}`;
+
     return NextResponse.json(
-      { error: 'Verification failed' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
+}
+
+/**
+ * GET /api/verify/stats
+ * 인증 서비스 통계 (관리자용)
+ *
+ * Headers:
+ * - Authorization: Bearer {ADMIN_SECRET_KEY}
+ */
+export async function GET(request: Request) {
+  try {
+    // 관리자 권한 체크
+    if (!isAdmin()) {
+      return NextResponse.json(
+        { error: '인증이 필요합니다' },
+        { status: 401 }
+      );
+    }
+
+    const stats = verificationService.getStats();
+
+    // 프로덕션에서는 민감한 정보 필터링
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({
+        success: true,
+        stats: {
+          provider: stats.provider,
+          rateLimiter: {
+            totalEntries: stats.rateLimiter.totalEntries,
+            blockedNumbers: stats.rateLimiter.blockedNumbers,
+            recentAttempts: stats.rateLimiter.recentAttempts
+          }
+          // memoryStoreSize는 프로덕션에서 제외
+        }
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      stats
+    });
+
+  } catch (error) {
+    console.error('통계 조회 오류:', error);
+
+    const errorMessage = process.env.NODE_ENV === 'production'
+      ? '통계 조회에 실패했습니다'
+      : `통계 조회 오류: ${error instanceof Error ? error.message : 'Unknown error'}`;
+
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * OPTIONS /api/verify
+ * CORS preflight 요청 처리
+ */
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }

@@ -7,7 +7,7 @@ import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
 import { Message, ChatState, LeadData } from '@/lib/types';
-import { chatFlow, getNextStep, validateInput } from '@/lib/chat-flow';
+import { chatFlow, getNextStep, validateInput } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
