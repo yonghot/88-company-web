@@ -83,15 +83,21 @@ export const questionFlow = {
 
 // 다음 스텝 결정 로직
 export const getNextStepId = (currentStep: string, userInput: string): string => {
+  console.log('🎯 getNextStepId DEBUG:', { currentStep, userInput });
+
   if (currentStep === 'welcome' && userInput === '기타 문의') {
+    console.log('🎯 Special case: welcome -> customService');
     return 'customService';
   }
 
   const possibleNextSteps = questionFlow[currentStep as keyof typeof questionFlow];
+  console.log('🎯 possibleNextSteps:', possibleNextSteps);
 
   if (possibleNextSteps && possibleNextSteps.length > 0) {
+    console.log('🎯 Returning first step:', possibleNextSteps[0]);
     return possibleNextSteps[0];
   }
 
+  console.log('🎯 No next steps, returning complete');
   return 'complete';
 };

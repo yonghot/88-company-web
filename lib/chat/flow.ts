@@ -83,14 +83,23 @@ export const chatFlow: Record<string, ChatStep> = {
 };
 
 export const getNextStep = (currentStepId: string, userInput: string): ChatStep | null => {
+  console.log('🔍 getNextStep DEBUG:', { currentStepId, userInput });
+
   const currentStep = chatFlow[currentStepId];
+  console.log('🔍 currentStep found:', !!currentStep);
 
   if (!currentStep || !currentStep.nextStep) {
+    console.log('🔍 No currentStep or nextStep function');
     return null;
   }
 
   const nextStepId = currentStep.nextStep(userInput);
-  return chatFlow[nextStepId] || null;
+  console.log('🔍 nextStepId calculated:', nextStepId);
+
+  const nextStep = chatFlow[nextStepId];
+  console.log('🔍 nextStep object found:', !!nextStep);
+
+  return nextStep || null;
 };
 
 export const validateInput = (stepId: string, value: string): boolean => {

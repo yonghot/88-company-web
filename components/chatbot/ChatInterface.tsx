@@ -189,9 +189,12 @@ export function ChatInterface() {
     }
 
     // Get next step
+    console.log('🚀 About to call getNextStep with:', chatState.currentStep, value);
     const nextStep = getNextStep(chatState.currentStep, value);
+    console.log('🚀 getNextStep returned:', nextStep);
 
     if (nextStep && nextStep.id !== 'complete') {
+      console.log('🚀 Moving to next step:', nextStep.id);
       const botMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -206,6 +209,7 @@ export function ChatInterface() {
         leadData: updatedLeadData
       }));
     } else if (nextStep && nextStep.id === 'complete') {
+      console.log('🚀 Completing chat flow');
       // Save lead data
       await saveLeadData(updatedLeadData);
 
@@ -223,6 +227,15 @@ export function ChatInterface() {
         leadData: updatedLeadData,
         isCompleted: true
       }));
+    } else {
+      console.log('🚀 ERROR: No valid next step found!');
+      console.log('🚀 nextStep was:', nextStep);
+      console.log('🚀 currentStep was:', chatState.currentStep);
+      console.log('🚀 userInput was:', value);
+      // No valid next step found - this should not happen in normal flow
+      // But we need to handle it gracefully
+      setIsTyping(false);
+      return;
     }
 
     setIsTyping(false);
