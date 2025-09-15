@@ -156,9 +156,14 @@ export default function QuestionsManagement() {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        if (result.isStatic) {
+          alert('Supabase가 설정되지 않아 순서 변경이 임시로만 저장됩니다.\n새로고침 시 초기화됩니다.');
+        }
         loadQuestions();
       } else {
-        alert('순서 변경 실패');
+        const data = await response.json();
+        alert(`순서 변경 실패: ${data.error || '알 수 없는 오류'}`);
       }
     } catch (error) {
       console.error('Failed to reorder:', error);

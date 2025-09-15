@@ -32,14 +32,21 @@ export async function POST(request: NextRequest) {
     const service = getDynamicQuestionService();
     await service.reorderQuestions(steps);
 
+    // Static 모드인지 확인
+    const isStatic = !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder') ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_supabase');
+
     return NextResponse.json({
       success: true,
-      message: 'Questions reordered successfully'
+      message: 'Questions reordered successfully',
+      isStatic: isStatic
     });
   } catch (error) {
     console.error('Error reordering questions:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to reorder questions';
     return NextResponse.json(
-      { success: false, error: 'Failed to reorder questions' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

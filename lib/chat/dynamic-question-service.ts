@@ -243,7 +243,21 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async reorderQuestions(steps: string[]): Promise<void> {
     if (this.useStaticFallback || !this.supabase) {
-      throw new Error('Cannot reorder questions in static mode');
+      // Static 모드에서는 순서 변경을 메모리에만 저장 (새로고침 시 초기화됨)
+      if (this.cache.questions) {
+        const reorderedMap = new Map<string, ChatQuestion>();
+        steps.forEach((step, index) => {
+          const question = this.cache.questions?.get(step);
+          if (question) {
+            reorderedMap.set(step, {
+              ...question,
+              order_index: index
+            });
+          }
+        });
+        this.cache.questions = reorderedMap;
+      }
+      return;
     }
 
     const updates = steps.map((step, index) => ({
