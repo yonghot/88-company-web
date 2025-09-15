@@ -378,7 +378,7 @@ export default function QuestionsManagement() {
                               {question.options.map((option, i) => (
                                 <span
                                   key={i}
-                                  className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs"
+                                  className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded text-xs border border-blue-200 dark:border-blue-800"
                                 >
                                   {option}
                                 </span>
