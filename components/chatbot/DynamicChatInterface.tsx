@@ -283,31 +283,13 @@ export function DynamicChatInterface() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                  <MessageCircle className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">88 Company</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">온라인 상담</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500 dark:text-gray-400">평균 응답시간</p>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">1분 이내</p>
-            </div>
-          </div>
-          {!chatState.isCompleted && (
+      {!chatState.isCompleted && (
+        <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-2">
+          <div className="max-w-4xl mx-auto">
             <ProgressBar currentStep={getProgressSteps()} totalSteps={TOTAL_STEPS} />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-4">

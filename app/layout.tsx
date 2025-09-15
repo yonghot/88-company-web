@@ -53,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" className="dark">
       <body
         className={`${inter.variable} font-sans antialiased h-screen overflow-hidden bg-background`}
       >
