@@ -9,13 +9,17 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
-  // FORCE INITIAL STATE TO 0 - EMERGENCY FIX
-  const safeCurrentStep = 0; // Always start at 0 regardless of input
+  const safeCurrentStep = Math.max(0, currentStep || 0);
   const safeTotalSteps = Math.max(1, totalSteps || 6);
-  const progress = 0; // Always start at 0%
-  const displayStep = '시작';
+  const progress = safeTotalSteps > 0 ? (safeCurrentStep / safeTotalSteps) * 100 : 0;
 
-  console.log('ProgressBar FORCED - ignoring currentStep:', currentStep, 'forcing to 0, totalSteps:', totalSteps, '→ safe:', safeTotalSteps, 'progress: 0%');
+  const getDisplayStep = () => {
+    if (safeCurrentStep === 0) return '시작';
+    if (safeCurrentStep === safeTotalSteps) return '완료';
+    return `${safeCurrentStep}단계`;
+  };
+
+  const displayStep = getDisplayStep();
 
   return (
     <div className="w-full px-4 py-4">

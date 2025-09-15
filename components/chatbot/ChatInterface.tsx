@@ -6,7 +6,6 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
-import { DebugProgressInfo } from './DebugProgressInfo';
 import { Message, ChatState, LeadData } from '@/lib/types';
 import { chatFlow, getNextStep, validateInput } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,8 +29,9 @@ export function ChatInterface() {
     leadData: {},
     isCompleted: false
   });
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const [totalQuestions, setTotalQuestions] = useState(6); // Dynamic total
+  // Explicitly initialize as empty array to prevent any state persistence issues
+  const [completedSteps, setCompletedSteps] = useState<string[]>(() => []);
+  const [totalQuestions, setTotalQuestions] = useState(6);
 
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');  // Store phone for verification
@@ -51,7 +51,6 @@ export function ChatInterface() {
 
     const handleStorageChange = () => {
       const loadedQuestions = ClientStorage.loadQuestions();
-      console.log('Storage change detected - Raw questions:', loadedQuestions);
 
       if (loadedQuestions && loadedQuestions.length > 0) {
         const mainSteps = loadedQuestions.filter(q =>
@@ -60,10 +59,8 @@ export function ChatInterface() {
           q.step !== 'customService'
         );
         setTotalQuestions(mainSteps.length);
-        console.log('Questions updated via storage change:', mainSteps.length, mainSteps);
       } else {
         setTotalQuestions(6);
-        console.log('No questions in storage, reverting to default: 6');
       }
     };
 
@@ -80,46 +77,26 @@ export function ChatInterface() {
   }, []);
 
   useEffect(() => {
-    console.log('🚨 CACHE_BUSTER_2024_12_15_15_30 - ChatInterface mounting...');
-    console.log('🚨 BEFORE setCompletedSteps([]) - current completedSteps:', completedSteps);
-
-    // FORCE completed steps to be empty - MULTIPLE TIMES
+    // Initialize completed steps as empty array
     setCompletedSteps([]);
-    console.log('🚨 AFTER setCompletedSteps([]) - should be empty');
 
-    // Force again after a brief delay to ensure state update
-    setTimeout(() => {
-      setCompletedSteps([]);
-      console.log('🚨 TIMEOUT setCompletedSteps([]) - forced again');
-    }, 10);
-
-    console.log('ChatInterface mounted - completedSteps initialized as []');
-
-    // Only load questions on client side
+    // Load dynamic questions on client side
     if (typeof window !== 'undefined') {
-      // Load dynamic questions from localStorage to get actual count
       const loadedQuestions = ClientStorage.loadQuestions();
-      console.log('Raw loaded questions:', loadedQuestions);
 
       if (loadedQuestions && loadedQuestions.length > 0) {
-        // Count main steps only (excluding sub-steps like phoneVerification)
+        // Count main steps only (excluding sub-steps)
         const mainSteps = loadedQuestions.filter(q =>
           q.step !== 'phoneVerification' &&
           q.step !== 'complete' &&
-          q.step !== 'customService' // customService is a sub-step of welcome
+          q.step !== 'customService'
         );
         setTotalQuestions(mainSteps.length);
-        console.log('Filtered main steps:', mainSteps);
-        console.log('Total questions set to:', mainSteps.length);
       } else {
-        // Default count if no custom questions
         setTotalQuestions(6);
-        console.log('No questions found, using default count: 6');
       }
     } else {
-      // Server side - use default
       setTotalQuestions(6);
-      console.log('Server side - using default count: 6');
     }
 
     // Show initial welcome message
@@ -136,19 +113,10 @@ export function ChatInterface() {
   }, []);
 
   const handleUserInput = async (value: string) => {
-    console.log('🔥 CHATBOT FLOW DEBUG START');
-    console.log('Current step:', chatState.currentStep);
-    console.log('User input:', value);
-    console.log('Chat state:', chatState);
-
     const currentStep = chatFlow[chatState.currentStep];
-    console.log('Current step config:', currentStep);
 
     // Validate input
-    const isValid = validateInput(chatState.currentStep, value);
-    console.log('Input validation result:', isValid);
-
-    if (!isValid) {
+    if (!validateInput(chatState.currentStep, value)) {
       const errorMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -215,31 +183,14 @@ export function ChatInterface() {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     // Mark current step as completed before moving to next
-    console.log('🚨 CACHE_BUSTER_2024_12_15_15_30 - About to check if step should be completed');
-    console.log('🚨 Current completedSteps:', completedSteps);
-    console.log('🚨 Current step to check:', chatState.currentStep);
-    console.log('🚨 Is step already included?', completedSteps.includes(chatState.currentStep));
-
     if (!completedSteps.includes(chatState.currentStep)) {
-      console.log('🚨 ADDING STEP TO COMPLETED - this is where length increases');
-      setCompletedSteps(prev => {
-        console.log('🚨 SETCOMPLETEDSTEPS called - prev:', prev);
-        const newCompleted = [...prev, chatState.currentStep];
-        console.log('🚨 SETCOMPLETEDSTEPS new array:', newCompleted);
-        console.log('Step completed:', chatState.currentStep, 'Total completed:', newCompleted.length);
-        return newCompleted;
-      });
-    } else {
-      console.log('🚨 STEP ALREADY COMPLETED - not adding');
+      setCompletedSteps(prev => [...prev, chatState.currentStep]);
     }
 
     // Get next step
-    console.log('Getting next step for:', chatState.currentStep, 'with input:', value);
     const nextStep = getNextStep(chatState.currentStep, value);
-    console.log('Next step result:', nextStep);
 
     if (nextStep && nextStep.id !== 'complete') {
-      console.log('✅ Moving to next step:', nextStep.id);
       const botMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -254,7 +205,6 @@ export function ChatInterface() {
         leadData: updatedLeadData
       }));
     } else if (nextStep && nextStep.id === 'complete') {
-      console.log('✅ Completing chat flow');
       // Save lead data
       await saveLeadData(updatedLeadData);
 
@@ -272,13 +222,8 @@ export function ChatInterface() {
         leadData: updatedLeadData,
         isCompleted: true
       }));
-    } else {
-      console.error('❌ No next step found! NextStep:', nextStep);
-      console.error('Current step was:', chatState.currentStep);
-      console.error('User input was:', value);
     }
 
-    console.log('🔥 CHATBOT FLOW DEBUG END');
     setIsTyping(false);
   };
 
@@ -336,14 +281,6 @@ export function ChatInterface() {
       {/* Progress Bar */}
       {!chatState.isCompleted && (
         <div className="bg-[#1A1F2E]/60 backdrop-blur-sm border-b border-[#2E3544]/50">
-          {(() => {
-            console.log('🚀 ChatInterface PASSING TO ClientProgressBar:');
-            console.log('  - completedSteps:', completedSteps);
-            console.log('  - completedSteps.length:', completedSteps.length);
-            console.log('  - totalQuestions:', totalQuestions);
-            console.log('  - chatState.currentStep:', chatState.currentStep);
-            return null;
-          })()}
           <ClientProgressBar
             completedSteps={completedSteps}
             totalQuestions={totalQuestions}
@@ -437,8 +374,6 @@ export function ChatInterface() {
         </div>
       )}
 
-      {/* Debug Info - only in development or for troubleshooting */}
-      <DebugProgressInfo />
     </div>
   );
 }
