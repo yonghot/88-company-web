@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
 import { Message, ChatState, LeadData } from '@/lib/types';
@@ -13,6 +13,15 @@ import { Sparkles, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClientStorage } from '@/lib/storage/client-storage';
 
+// Dynamic import for client-only progress bar
+const ClientProgressBar = dynamic(
+  () => import('./ClientProgressBar').then(mod => mod.ClientProgressBar),
+  {
+    ssr: false,
+    loading: () => <div className="h-[60px]" /> // Placeholder to prevent layout shift
+  }
+);
+
 export function ChatInterface() {
   const [chatState, setChatState] = useState<ChatState>({
     currentStep: 'welcome',
@@ -21,7 +30,6 @@ export function ChatInterface() {
     isCompleted: false
   });
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const [isHydrated, setIsHydrated] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(6); // Dynamic total
 
   const [isTyping, setIsTyping] = useState(false);
@@ -64,12 +72,9 @@ export function ChatInterface() {
   }, []);
 
   useEffect(() => {
-    // Mark as hydrated on client side
-    setIsHydrated(true);
-
-    // Clear completed steps on mount to ensure starting from 0
+    // Ensure completed steps starts empty
     setCompletedSteps([]);
-    console.log('ChatInterface mounted - completedSteps reset to []');
+    console.log('ChatInterface mounted - completedSteps initialized as []');
 
     // Load dynamic questions from localStorage to get actual count
     const loadedQuestions = ClientStorage.loadQuestions();
@@ -271,11 +276,11 @@ export function ChatInterface() {
       </div>
 
       {/* Progress Bar */}
-      {!chatState.isCompleted && isHydrated && (
+      {!chatState.isCompleted && (
         <div className="bg-[#1A1F2E]/60 backdrop-blur-sm border-b border-[#2E3544]/50">
-          <ProgressBar
-            currentStep={completedSteps.length}
-            totalSteps={totalQuestions}
+          <ClientProgressBar
+            completedSteps={completedSteps}
+            totalQuestions={totalQuestions}
           />
         </div>
       )}
