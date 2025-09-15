@@ -14,12 +14,18 @@ export function ClientProgressBar({ completedSteps, totalQuestions }: ClientProg
     return null;
   }
 
+  console.log('🚨 CACHE_BUSTER_2024_12_15_15_30 - ClientProgressBar rendering');
   console.log('🔥 ClientProgressBar DEBUG:');
   console.log('  - completedSteps received:', completedSteps);
   console.log('  - completedSteps type:', typeof completedSteps);
   console.log('  - completedSteps isArray:', Array.isArray(completedSteps));
   console.log('  - completedSteps length:', completedSteps?.length);
   console.log('  - totalQuestions:', totalQuestions);
+
+  if (completedSteps && completedSteps.length > 0) {
+    console.log('🚨 WARNING: completedSteps has items on render!', completedSteps);
+    console.log('🚨 Individual steps:', completedSteps.map((step, i) => `${i}: ${step}`));
+  }
 
   // Force initial state to be 0
   const actualCompleted = completedSteps?.length || 0;

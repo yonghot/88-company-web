@@ -80,8 +80,19 @@ export function ChatInterface() {
   }, []);
 
   useEffect(() => {
-    // Ensure completed steps starts empty
+    console.log('🚨 CACHE_BUSTER_2024_12_15_15_30 - ChatInterface mounting...');
+    console.log('🚨 BEFORE setCompletedSteps([]) - current completedSteps:', completedSteps);
+
+    // FORCE completed steps to be empty - MULTIPLE TIMES
     setCompletedSteps([]);
+    console.log('🚨 AFTER setCompletedSteps([]) - should be empty');
+
+    // Force again after a brief delay to ensure state update
+    setTimeout(() => {
+      setCompletedSteps([]);
+      console.log('🚨 TIMEOUT setCompletedSteps([]) - forced again');
+    }, 10);
+
     console.log('ChatInterface mounted - completedSteps initialized as []');
 
     // Only load questions on client side
@@ -204,12 +215,22 @@ export function ChatInterface() {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     // Mark current step as completed before moving to next
+    console.log('🚨 CACHE_BUSTER_2024_12_15_15_30 - About to check if step should be completed');
+    console.log('🚨 Current completedSteps:', completedSteps);
+    console.log('🚨 Current step to check:', chatState.currentStep);
+    console.log('🚨 Is step already included?', completedSteps.includes(chatState.currentStep));
+
     if (!completedSteps.includes(chatState.currentStep)) {
+      console.log('🚨 ADDING STEP TO COMPLETED - this is where length increases');
       setCompletedSteps(prev => {
+        console.log('🚨 SETCOMPLETEDSTEPS called - prev:', prev);
         const newCompleted = [...prev, chatState.currentStep];
+        console.log('🚨 SETCOMPLETEDSTEPS new array:', newCompleted);
         console.log('Step completed:', chatState.currentStep, 'Total completed:', newCompleted.length);
         return newCompleted;
       });
+    } else {
+      console.log('🚨 STEP ALREADY COMPLETED - not adding');
     }
 
     // Get next step
