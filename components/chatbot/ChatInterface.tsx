@@ -23,6 +23,7 @@ const ClientProgressBar = dynamic(
 );
 
 export function ChatInterface() {
+  // Version: 2024-12-15-v2 - Clean architecture without debugging pollution
   const [chatState, setChatState] = useState<ChatState>({
     currentStep: 'welcome',
     messages: [],

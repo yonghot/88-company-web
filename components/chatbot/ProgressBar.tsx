@@ -9,6 +9,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
+  // Version: 2024-12-15-v2 - Clean implementation without hardcoded fallbacks
   const safeCurrentStep = Math.max(0, currentStep || 0);
   const safeTotalSteps = Math.max(1, totalSteps || 6);
   const progress = safeTotalSteps > 0 ? (safeCurrentStep / safeTotalSteps) * 100 : 0;

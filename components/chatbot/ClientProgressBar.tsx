@@ -8,6 +8,7 @@ interface ClientProgressBarProps {
 }
 
 export function ClientProgressBar({ completedSteps, totalQuestions }: ClientProgressBarProps) {
+  // Version: 2024-12-15-v2 - Clean client-side progress tracking
   // Ensure we're on client side and have valid data
   if (typeof window === 'undefined') {
     return null;
