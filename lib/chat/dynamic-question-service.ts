@@ -30,10 +30,18 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseKey) {
+    // Supabase가 올바르게 설정되었는지 확인
+    const isValidSupabaseConfig =
+      supabaseUrl &&
+      supabaseKey &&
+      supabaseUrl.startsWith('http') &&
+      !supabaseUrl.includes('placeholder') &&
+      !supabaseUrl.includes('your_supabase');
+
+    if (isValidSupabaseConfig) {
       this.supabase = createClient(supabaseUrl, supabaseKey);
     } else {
-      console.warn('Supabase not configured, using static questions as fallback');
+      console.warn('Supabase not configured properly, using static questions as fallback');
       this.useStaticFallback = true;
     }
   }

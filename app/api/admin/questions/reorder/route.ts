@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDynamicQuestionService } from '@/lib/chat/dynamic-question-service';
+import { cookies } from 'next/headers';
 
-function checkAdminAuth(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const adminKey = process.env.ADMIN_SECRET_KEY;
+async function checkAdminAuth(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('admin-auth');
+  const adminPassword = process.env.ADMIN_PASSWORD || '159753';
 
-  if (!adminKey) {
-    console.warn('ADMIN_SECRET_KEY not configured');
-    return false;
-  }
-
-  return authHeader === `Bearer ${adminKey}`;
+  return authCookie?.value === adminPassword;
 }
 
 export async function POST(request: NextRequest) {
-  if (!checkAdminAuth(request)) {
+  if (!(await checkAdminAuth())) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
       { status: 401 }

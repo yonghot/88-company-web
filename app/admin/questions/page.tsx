@@ -48,15 +48,11 @@ export default function QuestionsManagement() {
   };
 
   const handleSaveEdit = async () => {
-    const adminKey = prompt('관리자 비밀번호를 입력하세요:');
-    if (!adminKey) return;
-
     try {
       const response = await fetch('/api/admin/questions', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(editForm)
       });
@@ -77,15 +73,9 @@ export default function QuestionsManagement() {
   const handleDelete = async (step: string) => {
     if (!confirm('정말 이 질문을 삭제하시겠습니까?')) return;
 
-    const adminKey = prompt('관리자 비밀번호를 입력하세요:');
-    if (!adminKey) return;
-
     try {
       const response = await fetch(`/api/admin/questions?step=${step}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${adminKey}`
-        }
+        method: 'DELETE'
       });
 
       if (response.ok) {
@@ -101,15 +91,11 @@ export default function QuestionsManagement() {
   };
 
   const handleCreateNew = async () => {
-    const adminKey = prompt('관리자 비밀번호를 입력하세요:');
-    if (!adminKey) return;
-
     try {
       const response = await fetch('/api/admin/questions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           ...newQuestion,
@@ -160,15 +146,11 @@ export default function QuestionsManagement() {
   };
 
   const reorderQuestions = async (steps: string[]) => {
-    const adminKey = prompt('관리자 비밀번호를 입력하세요:');
-    if (!adminKey) return;
-
     try {
       const response = await fetch('/api/admin/questions/reorder', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ steps })
       });
@@ -192,8 +174,9 @@ export default function QuestionsManagement() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <div className="min-h-screen overflow-y-auto pb-10">
+      <div className="container mx-auto p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         <div className="p-6 border-b dark:border-gray-700">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -422,6 +405,7 @@ export default function QuestionsManagement() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
