@@ -12,8 +12,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Sparkles, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const TOTAL_STEPS = 7; // Total number of steps in the chat flow (이메일 제외)
-
 export function ChatInterface() {
   const [chatState, setChatState] = useState<ChatState>({
     currentStep: 'welcome',
@@ -21,6 +19,7 @@ export function ChatInterface() {
     leadData: {},
     isCompleted: false
   });
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');  // Store phone for verification
@@ -114,13 +113,18 @@ export function ChatInterface() {
 
     // Show typing indicator
     setIsTyping(true);
-    
+
     // Simulate bot thinking time
     await new Promise(resolve => setTimeout(resolve, 800));
-    
+
+    // Mark current step as completed before moving to next
+    if (!completedSteps.includes(chatState.currentStep)) {
+      setCompletedSteps(prev => [...prev, chatState.currentStep]);
+    }
+
     // Get next step
     const nextStep = getNextStep(chatState.currentStep, value);
-    
+
     if (nextStep && nextStep.id !== 'complete') {
       const botMessage: Message = {
         id: uuidv4(),
@@ -179,14 +183,33 @@ export function ChatInterface() {
     }
   };
 
-  const getCurrentStepNumber = () => {
-    const steps = ['welcome', 'budget', 'timeline', 'details', 'name', 'phone', 'phoneVerification', 'complete'];
-    // Count phoneVerification as same step as phone for progress bar
-    let currentIndex = steps.indexOf(chatState.currentStep);
-    if (chatState.currentStep === 'phoneVerification') {
-      currentIndex = steps.indexOf('phone');
+  const getCompletedStepsCount = () => {
+    // Define the main steps (excluding customService and phoneVerification as they are sub-steps)
+    const mainSteps = ['welcome', 'budget', 'timeline', 'details', 'name', 'phone'];
+
+    // Count how many main steps have been completed
+    let completedCount = 0;
+    for (const step of mainSteps) {
+      if (completedSteps.includes(step)) {
+        completedCount++;
+      }
+      // Also count customService as welcome completion if it was answered
+      if (step === 'welcome' && completedSteps.includes('customService')) {
+        completedCount = Math.max(completedCount, 1);
+      }
     }
-    return currentIndex >= 0 ? currentIndex + 1 : 1;
+
+    // If phone verification is completed, count it as the final step
+    if (completedSteps.includes('phoneVerification') || chatState.isCompleted) {
+      completedCount = mainSteps.length;
+    }
+
+    return completedCount;
+  };
+
+  const getTotalSteps = () => {
+    // Count main steps only (excluding sub-steps like customService and phoneVerification)
+    return 6; // welcome, budget, timeline, details, name, phone
   };
 
   return (
@@ -221,9 +244,9 @@ export function ChatInterface() {
       {/* Progress Bar */}
       {!chatState.isCompleted && (
         <div className="bg-[#1A1F2E]/60 backdrop-blur-sm border-b border-[#2E3544]/50">
-          <ProgressBar 
-            currentStep={getCurrentStepNumber()} 
-            totalSteps={TOTAL_STEPS} 
+          <ProgressBar
+            currentStep={getCompletedStepsCount()}
+            totalSteps={getTotalSteps()}
           />
         </div>
       )}

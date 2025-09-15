@@ -9,7 +9,8 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
-  const progress = (currentStep / totalSteps) * 100;
+  const progress = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
+  const displayStep = currentStep === 0 ? '시작' : `${currentStep}단계 완료`;
 
   return (
     <div className="w-full px-4 py-4">
@@ -18,9 +19,9 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-gray-300">
-              {currentStep}단계
+              {displayStep}
             </span>
-            <span className="text-sm text-gray-400">/ {totalSteps}단계</span>
+            <span className="text-sm text-gray-400">/ 총 {totalSteps}단계</span>
           </div>
           <span className="text-sm font-medium text-[#00E5DB]">
             {Math.round(progress)}% 완료
@@ -46,15 +47,14 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
           <div className="absolute top-0 left-0 w-full h-2.5 flex justify-between px-1">
             {Array.from({ length: totalSteps }, (_, i) => {
               const stepProgress = ((i + 1) / totalSteps) * 100;
-              const isCompleted = i + 1 < currentStep;
-              const isCurrent = i + 1 === currentStep;
-              
+              const isCompleted = i < currentStep;
+
               return (
                 <div
                   key={i}
                   className={cn(
                     "w-1 h-2.5 rounded-full transition-all duration-300",
-                    isCompleted || isCurrent
+                    isCompleted
                       ? "bg-white/50"
                       : "bg-transparent"
                   )}
