@@ -315,6 +315,14 @@ export function ChatInterface() {
       {/* Progress Bar */}
       {!chatState.isCompleted && (
         <div className="bg-[#1A1F2E]/60 backdrop-blur-sm border-b border-[#2E3544]/50">
+          {(() => {
+            console.log('🚀 ChatInterface PASSING TO ClientProgressBar:');
+            console.log('  - completedSteps:', completedSteps);
+            console.log('  - completedSteps.length:', completedSteps.length);
+            console.log('  - totalQuestions:', totalQuestions);
+            console.log('  - chatState.currentStep:', chatState.currentStep);
+            return null;
+          })()}
           <ClientProgressBar
             completedSteps={completedSteps}
             totalQuestions={totalQuestions}
