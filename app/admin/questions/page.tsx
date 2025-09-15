@@ -156,10 +156,6 @@ export default function QuestionsManagement() {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        if (result.isStatic) {
-          alert('Supabase가 설정되지 않아 순서 변경이 임시로만 저장됩니다.\n새로고침 시 초기화됩니다.');
-        }
         loadQuestions();
       } else {
         const data = await response.json();
@@ -179,7 +175,7 @@ export default function QuestionsManagement() {
   }
 
   return (
-    <div className="min-h-screen overflow-y-auto pb-10">
+    <div className="h-full overflow-y-auto">
       <div className="container mx-auto p-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         <div className="p-6 border-b dark:border-gray-700">

@@ -87,6 +87,13 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     }
 
     if (this.useStaticFallback || !this.supabase) {
+      // JSON API에서 로드 시도
+      const fileQuestions = await this.loadQuestionsFromAPI();
+      if (fileQuestions && fileQuestions.size > 0) {
+        this.cache.questions = fileQuestions;
+        this.cache.lastFetch = new Date();
+        return fileQuestions;
+      }
       return this.convertStaticToMap();
     }
 
@@ -243,7 +250,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async reorderQuestions(steps: string[]): Promise<void> {
     if (this.useStaticFallback || !this.supabase) {
-      // Static 모드에서는 순서 변경을 메모리에만 저장 (새로고침 시 초기화됨)
+      // JSON 파일로 영구 저장
       if (this.cache.questions) {
         const reorderedMap = new Map<string, ChatQuestion>();
         steps.forEach((step, index) => {
@@ -256,6 +263,9 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
           }
         });
         this.cache.questions = reorderedMap;
+
+        // JSON API로 저장
+        await this.saveQuestionsToAPI(reorderedMap);
       }
       return;
     }
@@ -319,6 +329,56 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   invalidateCache(): void {
     this.cache.invalidate();
+  }
+
+  private async loadQuestionsFromAPI(): Promise<Map<string, ChatQuestion> | null> {
+    try {
+      // 서버 사이드에서는 전체 URL 필요
+      const baseUrl = typeof window === 'undefined'
+        ? `http://localhost:${process.env.PORT || 3000}`
+        : '';
+
+      const response = await fetch(`${baseUrl}/api/admin/questions/file`, {
+        method: 'GET'
+      });
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+        const questionsMap = new Map<string, ChatQuestion>();
+        data.questions.forEach((q: ChatQuestion) => {
+          questionsMap.set(q.step, q);
+        });
+        return questionsMap;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private async saveQuestionsToAPI(questions: Map<string, ChatQuestion>): Promise<void> {
+    try {
+      const questionsArray = Array.from(questions.values()).sort((a, b) => a.order_index - b.order_index);
+
+      // 서버 사이드에서는 전체 URL 필요
+      const baseUrl = typeof window === 'undefined'
+        ? `http://localhost:${process.env.PORT || 3000}`
+        : '';
+
+      await fetch(`${baseUrl}/api/admin/questions/file`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          questions: questionsArray
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save questions to API:', error);
+    }
   }
 }
 

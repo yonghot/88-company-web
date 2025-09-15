@@ -32,15 +32,9 @@ export async function POST(request: NextRequest) {
     const service = getDynamicQuestionService();
     await service.reorderQuestions(steps);
 
-    // Static 모드인지 확인
-    const isStatic = !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder') ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_supabase');
-
     return NextResponse.json({
       success: true,
-      message: 'Questions reordered successfully',
-      isStatic: isStatic
+      message: 'Questions reordered successfully'
     });
   } catch (error) {
     console.error('Error reordering questions:', error);
