@@ -170,7 +170,12 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async saveQuestion(question: ChatQuestion): Promise<ChatQuestion> {
     if (this.useStaticFallback || !this.supabase) {
-      throw new Error('Cannot save questions in static mode');
+      // 파일 기반 저장
+      const questions = await this.loadQuestions();
+      questions.set(question.step, question);
+      await this.saveQuestionsToAPI(questions);
+      this.cache.invalidate();
+      return question;
     }
 
     const { data, error } = await this.supabase
@@ -192,7 +197,16 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async updateQuestion(step: string, updates: Partial<ChatQuestion>): Promise<ChatQuestion> {
     if (this.useStaticFallback || !this.supabase) {
-      throw new Error('Cannot update questions in static mode');
+      // 파일 기반 업데이트
+      const questions = await this.loadQuestions();
+      const question = questions.get(step);
+      if (!question) throw new Error('Question not found');
+
+      const updated = { ...question, ...updates };
+      questions.set(step, updated);
+      await this.saveQuestionsToAPI(questions);
+      this.cache.invalidate();
+      return updated;
     }
 
     const { data: oldData } = await this.supabase
@@ -223,7 +237,12 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async deleteQuestion(step: string): Promise<void> {
     if (this.useStaticFallback || !this.supabase) {
-      throw new Error('Cannot delete questions in static mode');
+      // 파일 기반 삭제
+      const questions = await this.loadQuestions();
+      questions.delete(step);
+      await this.saveQuestionsToAPI(questions);
+      this.cache.invalidate();
+      return;
     }
 
     const { data: oldData } = await this.supabase

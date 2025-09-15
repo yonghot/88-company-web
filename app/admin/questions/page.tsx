@@ -313,6 +313,21 @@ export default function QuestionsManagement() {
                       className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                       placeholder="다음 단계"
                     />
+                    {(editForm.type === 'select' || editForm.type === 'quick-reply') && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">옵션 (콤마로 구분)</label>
+                        <input
+                          type="text"
+                          value={editForm.options?.join(', ') || ''}
+                          onChange={(e) => {
+                            const options = e.target.value.split(',').map(opt => opt.trim()).filter(opt => opt);
+                            setEditForm({ ...editForm, options: options.length > 0 ? options : undefined });
+                          }}
+                          className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                          placeholder="예: 옵션1, 옵션2, 옵션3"
+                        />
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={handleSaveEdit}
