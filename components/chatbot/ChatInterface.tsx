@@ -78,6 +78,9 @@ export function ChatInterface() {
   }, []);
 
   useEffect(() => {
+    console.log('🚨🚨🚨 EMERGENCY_DEPLOY_CHECK_2024_12_15_16_00 🚨🚨🚨');
+    console.log('🚨🚨🚨 IF YOU SEE THIS THE CODE IS DEPLOYED 🚨🚨🚨');
+
     // Initialize completed steps as empty array
     setCompletedSteps([]);
 
