@@ -36,9 +36,9 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
 
   if (currentStep.inputType === 'select' && currentStep.options) {
     return (
-      <div className="p-4 md:p-6 bg-white border-t border-gray-100">
+      <div className="p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
         <div className="max-w-2xl mx-auto">
-          <p className="text-sm text-gray-500 mb-3 font-medium">
+          <p className="text-sm text-gray-400 mb-3 font-medium">
             옵션을 선택해주세요
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -47,11 +47,11 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
                 key={option}
                 className={cn(
                   'group relative px-4 py-3 rounded-xl text-left transition-all duration-200',
-                  'border hover:shadow-md hover:border-[#00C7BE] hover:-translate-y-0.5',
+                  'border hover:shadow-md hover:border-[#00E5DB] hover:-translate-y-0.5',
                   'active:scale-[0.98]',
                   selectedOption === option
-                    ? 'bg-[#00C7BE] text-white border-[#00C7BE] shadow-md'
-                    : 'bg-white text-gray-700 border-gray-200'
+                    ? 'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-white border-[#00E5DB] shadow-lg shadow-[#00E5DB]/20'
+                    : 'bg-[#252B3B] text-gray-200 border-[#2E3544] hover:bg-[#2A3142]'
                 )}
                 onClick={() => {
                   setSelectedOption(option);
@@ -77,7 +77,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
 
   if (currentStep.inputType === 'textarea') {
     return (
-      <div className="p-4 md:p-6 bg-white border-t border-gray-100">
+      <div className="p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
         <div className="max-w-2xl mx-auto">
           <div className="relative">
             <Textarea
@@ -88,10 +88,10 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               disabled={disabled}
               className={cn(
                 'w-full min-h-[100px] resize-none px-4 py-3 pr-12',
-                'border border-gray-200 rounded-xl',
-                'focus:border-[#00C7BE] focus:ring-2 focus:ring-[#00C7BE]/20',
-                'transition-all duration-200',
-                'placeholder:text-gray-400'
+                'bg-[#252B3B] border border-[#2E3544] rounded-xl',
+                'text-gray-200 placeholder:text-gray-500',
+                'focus:border-[#00E5DB] focus:ring-2 focus:ring-[#00E5DB]/30',
+                'transition-all duration-200'
               )}
             />
             <button
@@ -99,8 +99,8 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               disabled={disabled || !inputValue.trim()}
               className={cn(
                 'absolute bottom-3 right-3 p-2 rounded-lg',
-                'bg-[#00C7BE] text-white',
-                'hover:bg-[#00A199] active:scale-95',
+                'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
+                'hover:shadow-[0_0_15px_rgba(0,229,219,0.4)] active:scale-95',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 'transition-all duration-200'
               )}
@@ -108,7 +108,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               <Send className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-500 mt-2">
             Enter키를 눌러 전송하거나 오른쪽 버튼을 클릭하세요
           </p>
         </div>
@@ -117,7 +117,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
   }
 
   return (
-    <div className="p-4 md:p-6 bg-white border-t border-gray-100">
+    <div className="p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
       <div className="max-w-2xl mx-auto">
         <div className="relative">
           <Input
@@ -150,9 +150,9 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          {currentStep.inputType === 'phone' 
-            ? '예: 010-1234-5678' 
+        <p className="text-xs text-gray-500 mt-2">
+          {currentStep.inputType === 'phone'
+            ? '예: 010-1234-5678'
             : currentStep.inputType === 'email'
             ? '예: example@email.com'
             : 'Enter키를 눌러 전송하세요'}
