@@ -6,6 +6,7 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
+import { DebugProgressInfo } from './DebugProgressInfo';
 import { Message, ChatState, LeadData } from '@/lib/types';
 import { chatFlow, getNextStep, validateInput } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,8 +47,12 @@ export function ChatInterface() {
 
   // Listen for localStorage changes to update question count in real-time
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleStorageChange = () => {
       const loadedQuestions = ClientStorage.loadQuestions();
+      console.log('Storage change detected - Raw questions:', loadedQuestions);
+
       if (loadedQuestions && loadedQuestions.length > 0) {
         const mainSteps = loadedQuestions.filter(q =>
           q.step !== 'phoneVerification' &&
@@ -55,7 +60,10 @@ export function ChatInterface() {
           q.step !== 'customService'
         );
         setTotalQuestions(mainSteps.length);
-        console.log('Questions updated:', mainSteps.length);
+        console.log('Questions updated via storage change:', mainSteps.length, mainSteps);
+      } else {
+        setTotalQuestions(6);
+        console.log('No questions in storage, reverting to default: 6');
       }
     };
 
@@ -76,20 +84,31 @@ export function ChatInterface() {
     setCompletedSteps([]);
     console.log('ChatInterface mounted - completedSteps initialized as []');
 
-    // Load dynamic questions from localStorage to get actual count
-    const loadedQuestions = ClientStorage.loadQuestions();
-    if (loadedQuestions && loadedQuestions.length > 0) {
-      // Count main steps only (excluding sub-steps like phoneVerification)
-      const mainSteps = loadedQuestions.filter(q =>
-        q.step !== 'phoneVerification' &&
-        q.step !== 'complete' &&
-        q.step !== 'customService' // customService is a sub-step of welcome
-      );
-      setTotalQuestions(mainSteps.length);
-      console.log('Loaded questions count:', mainSteps.length);
+    // Only load questions on client side
+    if (typeof window !== 'undefined') {
+      // Load dynamic questions from localStorage to get actual count
+      const loadedQuestions = ClientStorage.loadQuestions();
+      console.log('Raw loaded questions:', loadedQuestions);
+
+      if (loadedQuestions && loadedQuestions.length > 0) {
+        // Count main steps only (excluding sub-steps like phoneVerification)
+        const mainSteps = loadedQuestions.filter(q =>
+          q.step !== 'phoneVerification' &&
+          q.step !== 'complete' &&
+          q.step !== 'customService' // customService is a sub-step of welcome
+        );
+        setTotalQuestions(mainSteps.length);
+        console.log('Filtered main steps:', mainSteps);
+        console.log('Total questions set to:', mainSteps.length);
+      } else {
+        // Default count if no custom questions
+        setTotalQuestions(6);
+        console.log('No questions found, using default count: 6');
+      }
     } else {
-      // Default count if no custom questions
+      // Server side - use default
       setTotalQuestions(6);
+      console.log('Server side - using default count: 6');
     }
 
     // Show initial welcome message
@@ -370,6 +389,9 @@ export function ChatInterface() {
           </div>
         </div>
       )}
+
+      {/* Debug Info - only in development or for troubleshooting */}
+      <DebugProgressInfo />
     </div>
   );
 }
