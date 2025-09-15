@@ -12,6 +12,8 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
   const progress = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
   const displayStep = currentStep === 0 ? '시작' : `${currentStep}단계 완료`;
 
+  console.log('ProgressBar - currentStep:', currentStep, 'totalSteps:', totalSteps, 'progress:', progress);
+
   return (
     <div className="w-full px-4 py-4">
       <div className="max-w-2xl mx-auto">

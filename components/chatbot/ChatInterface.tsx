@@ -20,7 +20,8 @@ export function ChatInterface() {
     isCompleted: false
   });
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  
+  const [isHydrated, setIsHydrated] = useState(false);
+
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');  // Store phone for verification
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,6 +35,9 @@ export function ChatInterface() {
   }, [chatState.messages]);
 
   useEffect(() => {
+    // Mark as hydrated on client side
+    setIsHydrated(true);
+
     // Show initial welcome message
     const welcomeMessage: Message = {
       id: uuidv4(),
@@ -183,34 +187,6 @@ export function ChatInterface() {
     }
   };
 
-  const getCompletedStepsCount = () => {
-    // Define the main steps (excluding customService and phoneVerification as they are sub-steps)
-    const mainSteps = ['welcome', 'budget', 'timeline', 'details', 'name', 'phone'];
-
-    // Count how many main steps have been completed
-    let completedCount = 0;
-    for (const step of mainSteps) {
-      if (completedSteps.includes(step)) {
-        completedCount++;
-      }
-      // Also count customService as welcome completion if it was answered
-      if (step === 'welcome' && completedSteps.includes('customService')) {
-        completedCount = Math.max(completedCount, 1);
-      }
-    }
-
-    // If phone verification is completed, count it as the final step
-    if (completedSteps.includes('phoneVerification') || chatState.isCompleted) {
-      completedCount = mainSteps.length;
-    }
-
-    return completedCount;
-  };
-
-  const getTotalSteps = () => {
-    // Count main steps only (excluding sub-steps like customService and phoneVerification)
-    return 6; // welcome, budget, timeline, details, name, phone
-  };
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-[#0A0D13] to-[#141821]">
@@ -242,11 +218,11 @@ export function ChatInterface() {
       </div>
 
       {/* Progress Bar */}
-      {!chatState.isCompleted && (
+      {!chatState.isCompleted && isHydrated && (
         <div className="bg-[#1A1F2E]/60 backdrop-blur-sm border-b border-[#2E3544]/50">
           <ProgressBar
-            currentStep={getCompletedStepsCount()}
-            totalSteps={getTotalSteps()}
+            currentStep={completedSteps?.length || 0}
+            totalSteps={6}
           />
         </div>
       )}
