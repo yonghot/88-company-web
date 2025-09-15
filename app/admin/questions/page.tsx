@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChatQuestion } from '@/lib/chat/dynamic-types';
 import { Plus, Edit2, Trash2, Save, X, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
+import { ClientStorage } from '@/lib/storage/client-storage';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -30,10 +31,21 @@ export default function QuestionsManagement() {
   const loadQuestions = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/questions');
-      const data = await response.json();
-      if (data.success) {
-        setQuestions(data.data.questions || []);
+      // 먼저 localStorage에서 로드 시도
+      const localQuestions = ClientStorage.loadQuestions();
+      if (localQuestions && localQuestions.length > 0) {
+        setQuestions(localQuestions.sort((a, b) => a.order_index - b.order_index));
+      } else {
+        // localStorage가 비어있으면 API에서 로드
+        const response = await fetch('/api/admin/questions');
+        const data = await response.json();
+        if (data.success && data.data.questions) {
+          setQuestions(data.data.questions || []);
+          // localStorage에 저장
+          if (data.data.questions.length > 0) {
+            ClientStorage.saveQuestions(data.data.questions);
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load questions:', error);
@@ -49,20 +61,18 @@ export default function QuestionsManagement() {
 
   const handleSaveEdit = async () => {
     try {
-      const response = await fetch('/api/admin/questions', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editForm)
-      });
-
-      if (response.ok) {
+      if (!editForm.step) {
+        alert('Step ID가 필요합니다.');
+        return;
+      }
+      // localStorage에 직접 저장
+      const updated = ClientStorage.updateQuestion(editForm.step, editForm);
+      if (updated) {
         alert('질문이 수정되었습니다.');
         setEditingId(null);
         loadQuestions();
       } else {
-        alert('수정 실패: 권한이 없거나 오류가 발생했습니다.');
+        alert('수정 실패: 질문을 찾을 수 없습니다.');
       }
     } catch (error) {
       console.error('Failed to save:', error);
@@ -74,16 +84,10 @@ export default function QuestionsManagement() {
     if (!confirm('정말 이 질문을 삭제하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`/api/admin/questions?step=${step}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        alert('질문이 삭제되었습니다.');
-        loadQuestions();
-      } else {
-        alert('삭제 실패: 권한이 없거나 오류가 발생했습니다.');
-      }
+      // localStorage에서 직접 삭제
+      ClientStorage.deleteQuestion(step);
+      alert('질문이 삭제되었습니다.');
+      loadQuestions();
     } catch (error) {
       console.error('Failed to delete:', error);
       alert('삭제 중 오류가 발생했습니다.');
@@ -92,33 +96,31 @@ export default function QuestionsManagement() {
 
   const handleCreateNew = async () => {
     try {
-      const response = await fetch('/api/admin/questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...newQuestion,
-          order_index: questions.length
-        })
-      });
-
-      if (response.ok) {
-        alert('새 질문이 추가되었습니다.');
-        setIsCreating(false);
-        setNewQuestion({
-          step: '',
-          type: 'text',
-          question: '',
-          placeholder: '',
-          next_step: '',
-          order_index: 0,
-          is_active: true
-        });
-        loadQuestions();
-      } else {
-        alert('추가 실패: 권한이 없거나 오류가 발생했습니다.');
+      if (!newQuestion.step || !newQuestion.question) {
+        alert('필수 필드를 입력해주세요.');
+        return;
       }
+
+      // localStorage에 직접 추가
+      const questionToAdd = {
+        ...newQuestion,
+        order_index: questions.length,
+        is_active: true
+      } as ChatQuestion;
+
+      ClientStorage.addQuestion(questionToAdd);
+      alert('새 질문이 추가되었습니다.');
+      setIsCreating(false);
+      setNewQuestion({
+        step: '',
+        type: 'text',
+        question: '',
+        placeholder: '',
+        next_step: '',
+        order_index: 0,
+        is_active: true
+      });
+      loadQuestions();
     } catch (error) {
       console.error('Failed to create:', error);
       alert('추가 중 오류가 발생했습니다.');
@@ -147,22 +149,12 @@ export default function QuestionsManagement() {
 
   const reorderQuestions = async (steps: string[]) => {
     try {
-      const response = await fetch('/api/admin/questions/reorder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ steps })
-      });
-
-      if (response.ok) {
-        loadQuestions();
-      } else {
-        const data = await response.json();
-        alert(`순서 변경 실패: ${data.error || '알 수 없는 오류'}`);
-      }
+      // localStorage에 직접 순서 변경 저장
+      ClientStorage.reorderQuestions(steps);
+      loadQuestions();
     } catch (error) {
       console.error('Failed to reorder:', error);
+      alert('순서 변경 중 오류가 발생했습니다.');
     }
   };
 

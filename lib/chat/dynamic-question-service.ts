@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatQuestion, ChatFlow, DynamicQuestionService, QuestionCache, CACHE_TTL } from './dynamic-types';
 import { chatQuestions as staticQuestions } from './questions';
+import { ClientStorage } from '@/lib/storage/client-storage';
 
 class QuestionCacheImpl implements QuestionCache {
   questions: Map<string, ChatQuestion> | null = null;
@@ -87,7 +88,19 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     }
 
     if (this.useStaticFallback || !this.supabase) {
-      // JSON API에서 로드 시도
+      // 클라이언트 사이드에서는 localStorage 사용
+      if (typeof window !== 'undefined') {
+        const localQuestions = ClientStorage.loadQuestions();
+        if (localQuestions && localQuestions.length > 0) {
+          const questionsMap = new Map<string, ChatQuestion>();
+          localQuestions.forEach(q => questionsMap.set(q.step, q));
+          this.cache.questions = questionsMap;
+          this.cache.lastFetch = new Date();
+          return questionsMap;
+        }
+      }
+
+      // 서버 사이드에서는 API 또는 static 사용
       const fileQuestions = await this.loadQuestionsFromAPI();
       if (fileQuestions && fileQuestions.size > 0) {
         this.cache.questions = fileQuestions;
@@ -170,10 +183,16 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async saveQuestion(question: ChatQuestion): Promise<ChatQuestion> {
     if (this.useStaticFallback || !this.supabase) {
-      // 파일 기반 저장
       const questions = await this.loadQuestions();
       questions.set(question.step, question);
-      await this.saveQuestionsToAPI(questions);
+
+      // 클라이언트 사이드에서는 localStorage에 저장
+      if (typeof window !== 'undefined') {
+        ClientStorage.addQuestion(question);
+      } else {
+        await this.saveQuestionsToAPI(questions);
+      }
+
       this.cache.invalidate();
       return question;
     }
@@ -197,14 +216,20 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async updateQuestion(step: string, updates: Partial<ChatQuestion>): Promise<ChatQuestion> {
     if (this.useStaticFallback || !this.supabase) {
-      // 파일 기반 업데이트
       const questions = await this.loadQuestions();
       const question = questions.get(step);
       if (!question) throw new Error('Question not found');
 
       const updated = { ...question, ...updates };
       questions.set(step, updated);
-      await this.saveQuestionsToAPI(questions);
+
+      // 클라이언트 사이드에서는 localStorage에 저장
+      if (typeof window !== 'undefined') {
+        ClientStorage.updateQuestion(step, updates);
+      } else {
+        await this.saveQuestionsToAPI(questions);
+      }
+
       this.cache.invalidate();
       return updated;
     }
@@ -237,10 +262,16 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async deleteQuestion(step: string): Promise<void> {
     if (this.useStaticFallback || !this.supabase) {
-      // 파일 기반 삭제
       const questions = await this.loadQuestions();
       questions.delete(step);
-      await this.saveQuestionsToAPI(questions);
+
+      // 클라이언트 사이드에서는 localStorage에서 삭제
+      if (typeof window !== 'undefined') {
+        ClientStorage.deleteQuestion(step);
+      } else {
+        await this.saveQuestionsToAPI(questions);
+      }
+
       this.cache.invalidate();
       return;
     }
@@ -269,7 +300,6 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
   async reorderQuestions(steps: string[]): Promise<void> {
     if (this.useStaticFallback || !this.supabase) {
-      // JSON 파일로 영구 저장
       if (this.cache.questions) {
         const reorderedMap = new Map<string, ChatQuestion>();
         steps.forEach((step, index) => {
@@ -283,8 +313,13 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
         });
         this.cache.questions = reorderedMap;
 
-        // JSON API로 저장
-        await this.saveQuestionsToAPI(reorderedMap);
+        // 클라이언트 사이드에서는 localStorage에 저장
+        if (typeof window !== 'undefined') {
+          ClientStorage.reorderQuestions(steps);
+        } else {
+          // 서버 사이드에서는 API로 저장
+          await this.saveQuestionsToAPI(reorderedMap);
+        }
       }
       return;
     }
