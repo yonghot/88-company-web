@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { ChatQuestion } from '@/lib/chat/dynamic-types';
 import { Plus, Edit2, Trash2, Save, X, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export default function QuestionsManagement() {
   const [questions, setQuestions] = useState<ChatQuestion[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);

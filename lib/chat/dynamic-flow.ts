@@ -54,7 +54,7 @@ export class DynamicChatFlow {
       id: question.step,
       question: question.question,
       inputType: this.mapQuestionType(question.type),
-      nextStep: () => question.next_step || null
+      nextStep: () => question.next_step || ''
     };
 
     if (question.placeholder) {
@@ -89,8 +89,7 @@ export class DynamicChatFlow {
     }
 
     if (question.type === 'verification') {
-      step.inputType = 'text';
-      step.isPhoneVerification = true;
+      step.inputType = 'phone';
     }
 
     return step;

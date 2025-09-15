@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatQuestion, ChatFlow, DynamicQuestionService, QuestionCache, CACHE_TTL } from './dynamic-types';
-import { questions as staticQuestions } from './questions';
+import { chatQuestions as staticQuestions } from './questions';
 
 class QuestionCacheImpl implements QuestionCache {
   questions: Map<string, ChatQuestion> | null = null;
@@ -41,20 +41,36 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
   private convertStaticToMap(): Map<string, ChatQuestion> {
     const map = new Map<string, ChatQuestion>();
     Object.entries(staticQuestions).forEach(([key, value], index) => {
+      let type: 'text' | 'textarea' | 'select' = 'text';
+      if ('options' in value && value.options) {
+        type = 'select';
+      } else if (key === 'customService' || key === 'details') {
+        type = 'textarea';
+      }
+
       const question: ChatQuestion = {
         step: key,
-        type: value.type as any,
+        type: type,
         question: value.question,
-        placeholder: value.placeholder,
-        options: value.options,
-        validation: value.validation,
-        next_step: value.nextStep,
+        placeholder: ('placeholder' in value ? value.placeholder : '') || '',
+        options: 'options' in value ? value.options : undefined,
+        validation: undefined,
+        next_step: this.getDefaultNextStep(key),
         is_active: true,
         order_index: index
       };
       map.set(key, question);
     });
     return map;
+  }
+
+  private getDefaultNextStep(currentStep: string): string {
+    const stepOrder = ['welcome', 'customService', 'budget', 'timeline', 'details', 'name', 'phone', 'complete'];
+    const currentIndex = stepOrder.indexOf(currentStep);
+    if (currentIndex >= 0 && currentIndex < stepOrder.length - 1) {
+      return stepOrder[currentIndex + 1];
+    }
+    return '';
   }
 
   async loadQuestions(): Promise<Map<string, ChatQuestion>> {

@@ -8,8 +8,8 @@ const verificationService = VerificationService.getInstance();
 /**
  * 관리자 인증 확인
  */
-function isAdmin(): boolean {
-  const headersList = headers();
+async function isAdmin(): Promise<boolean> {
+  const headersList = await headers();
   const authHeader = headersList.get('authorization');
   const adminKey = process.env.ADMIN_SECRET_KEY;
 
@@ -30,8 +30,8 @@ function isAdmin(): boolean {
 /**
  * IP 주소 추출
  */
-function getClientIP(): string {
-  const headersList = headers();
+async function getClientIP(): Promise<string> {
+  const headersList = await headers();
 
   // Vercel 환경
   const forwardedFor = headersList.get('x-forwarded-for');
@@ -68,8 +68,9 @@ export async function POST(request: Request) {
     const { action, phone, code } = body;
 
     // 클라이언트 정보 수집 (로깅용)
-    const clientIP = getClientIP();
-    const userAgent = headers().get('user-agent') || 'unknown';
+    const clientIP = await getClientIP();
+    const headersList = await headers();
+    const userAgent = headersList.get('user-agent') || 'unknown';
 
     // 로깅 (프로덕션에서는 민감 정보 제외)
     if (process.env.NODE_ENV === 'production') {
@@ -203,7 +204,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     // 관리자 권한 체크
-    if (!isAdmin()) {
+    if (!(await isAdmin())) {
       return NextResponse.json(
         { error: '인증이 필요합니다' },
         { status: 401 }

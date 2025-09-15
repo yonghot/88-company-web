@@ -268,7 +268,12 @@ export class CostOptimizer {
    * 통계 조회
    */
   getStats(): {
-    daily: typeof this.dailyStats;
+    daily: {
+      date: string;
+      count: number;
+      cost: number;
+      failures: number;
+    };
     monthly: {
       totalCount: number;
       totalCost: number;

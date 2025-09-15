@@ -181,7 +181,7 @@ export function DynamicChatInterface() {
     }, 1000);
   };
 
-  const handleVerificationComplete = async () => {
+  const handleVerificationComplete = async (code: string) => {
     const updatedLeadData: LeadData = {
       ...chatState.leadData,
       phone: phoneNumber,
@@ -339,15 +339,14 @@ export function DynamicChatInterface() {
             )}
             {currentStep.inputType !== 'select' && chatState.currentStep !== 'phone' && (
               <ChatInput
-                placeholder={currentStep.placeholder}
-                onSend={handleUserInput}
-                inputType={currentStep.inputType}
+                currentStep={currentStep}
+                onSubmit={handleUserInput}
               />
             )}
             {chatState.currentStep === 'phone' && (
               <VerificationInput
-                onVerified={handleVerificationComplete}
-                initialPhone={phoneNumber}
+                phoneNumber={phoneNumber}
+                onVerify={handleVerificationComplete}
               />
             )}
           </div>

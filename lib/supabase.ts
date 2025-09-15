@@ -19,4 +19,4 @@ export const supabase = isSupabaseConfigured()
   : null as any;
 
 // Import database types
-export { Lead, VerificationCode } from './database/types';
+export type { Lead, VerificationCode } from './database/types';

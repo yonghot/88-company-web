@@ -8,5 +8,7 @@ export * from './database/types';
 // Export utility functions
 export { cn } from './utils';
 
-// Export Supabase client and types
-export { supabase, Lead, VerificationCode } from './supabase';
+// Export Supabase client
+export { supabase } from './supabase';
+// Export Supabase types
+export type { Lead, VerificationCode } from './supabase';
