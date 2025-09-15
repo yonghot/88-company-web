@@ -125,10 +125,19 @@ export function ChatInterface() {
   }, []);
 
   const handleUserInput = async (value: string) => {
+    console.log('🔥 CHATBOT FLOW DEBUG START');
+    console.log('Current step:', chatState.currentStep);
+    console.log('User input:', value);
+    console.log('Chat state:', chatState);
+
     const currentStep = chatFlow[chatState.currentStep];
-    
+    console.log('Current step config:', currentStep);
+
     // Validate input
-    if (!validateInput(chatState.currentStep, value)) {
+    const isValid = validateInput(chatState.currentStep, value);
+    console.log('Input validation result:', isValid);
+
+    if (!isValid) {
       const errorMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -204,9 +213,12 @@ export function ChatInterface() {
     }
 
     // Get next step
+    console.log('Getting next step for:', chatState.currentStep, 'with input:', value);
     const nextStep = getNextStep(chatState.currentStep, value);
+    console.log('Next step result:', nextStep);
 
     if (nextStep && nextStep.id !== 'complete') {
+      console.log('✅ Moving to next step:', nextStep.id);
       const botMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -221,9 +233,10 @@ export function ChatInterface() {
         leadData: updatedLeadData
       }));
     } else if (nextStep && nextStep.id === 'complete') {
+      console.log('✅ Completing chat flow');
       // Save lead data
       await saveLeadData(updatedLeadData);
-      
+
       const completeMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -238,8 +251,13 @@ export function ChatInterface() {
         leadData: updatedLeadData,
         isCompleted: true
       }));
+    } else {
+      console.error('❌ No next step found! NextStep:', nextStep);
+      console.error('Current step was:', chatState.currentStep);
+      console.error('User input was:', value);
     }
-    
+
+    console.log('🔥 CHATBOT FLOW DEBUG END');
     setIsTyping(false);
   };
 

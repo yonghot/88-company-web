@@ -31,14 +31,21 @@ export function DebugProgressInfo() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!debugInfo) return null;
+  // Force show debug panel - provide defaults if debugInfo is null
+  const safeDebugInfo = debugInfo || {
+    totalQuestions: 0,
+    mainSteps: 0,
+    questions: null,
+    localStorage: null
+  };
 
   return (
     <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs font-mono max-w-md z-50">
-      <div className="font-bold mb-2">Debug Info</div>
-      <div>Total Questions: {debugInfo.totalQuestions}</div>
-      <div>Main Steps: {debugInfo.mainSteps}</div>
-      <div>LocalStorage: {debugInfo.localStorage ? 'Has data' : 'Empty'}</div>
+      <div className="font-bold mb-2">🔧 Debug Panel FORCED</div>
+      <div>Total Questions: {safeDebugInfo.totalQuestions}</div>
+      <div>Main Steps: {safeDebugInfo.mainSteps}</div>
+      <div>LocalStorage: {safeDebugInfo.localStorage ? 'Has data' : 'Empty'}</div>
+      <div>Status: {debugInfo ? 'Data Loaded' : 'No Data - Using Defaults'}</div>
       <button
         onClick={() => {
           localStorage.removeItem('admin_questions');
