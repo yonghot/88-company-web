@@ -67,7 +67,7 @@ export function DynamicChatInterface() {
         messages: [welcomeMessage]
       }));
     } catch (error) {
-      console.error('Failed to load dynamic flow, using static:', error);
+      // Using static flow when dynamic flow is not available (expected without Supabase)
       setDynamicFlow(staticFlow);
 
       const welcomeMessage: Message = {

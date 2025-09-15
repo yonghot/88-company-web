@@ -36,7 +36,7 @@ export class DynamicChatFlow {
     await this.ensureLoaded();
 
     if (!this.questionsMap || this.questionsMap.size === 0) {
-      console.warn('Using static flow as fallback');
+      // Using static flow as fallback (expected when Supabase is not configured)
       return staticFlow;
     }
 
@@ -115,7 +115,7 @@ export class DynamicChatFlow {
     try {
       const service = getDynamicQuestionService();
       const flow = await service.loadFlow();
-      return flow?.start_step || 'service_type';
+      return flow?.start_step || 'welcome';
     } catch (error) {
       console.error('Failed to get start step:', error);
       return 'welcome';

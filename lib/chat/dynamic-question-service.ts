@@ -41,7 +41,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     if (isValidSupabaseConfig) {
       this.supabase = createClient(supabaseUrl, supabaseKey);
     } else {
-      console.warn('Supabase not configured properly, using static questions as fallback');
+      // Supabase not configured, using static questions (this is expected in development)
       this.useStaticFallback = true;
     }
   }
@@ -130,7 +130,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
       return {
         name: 'default',
         description: '기본 리드 생성 플로우',
-        start_step: 'service_type',
+        start_step: 'welcome',
         is_active: true
       };
     }
@@ -148,7 +148,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
         return {
           name: 'default',
           description: '기본 리드 생성 플로우',
-          start_step: 'service_type',
+          start_step: 'welcome',
           is_active: true
         };
       }
