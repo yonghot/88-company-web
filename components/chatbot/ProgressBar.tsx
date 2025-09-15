@@ -9,10 +9,13 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
-  const progress = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
-  const displayStep = currentStep === 0 ? '시작' : `${currentStep}단계 완료`;
+  // Ensure currentStep is never negative and starts at 0
+  const safeCurrentStep = Math.max(0, currentStep || 0);
+  const safeTotalSteps = Math.max(1, totalSteps || 1);
+  const progress = (safeCurrentStep / safeTotalSteps) * 100;
+  const displayStep = safeCurrentStep === 0 ? '시작' : `${safeCurrentStep}단계 완료`;
 
-  console.log('ProgressBar - currentStep:', currentStep, 'totalSteps:', totalSteps, 'progress:', progress);
+  console.log('ProgressBar render - currentStep:', currentStep, '→ safe:', safeCurrentStep, 'totalSteps:', totalSteps, '→ safe:', safeTotalSteps, 'progress:', progress + '%');
 
   return (
     <div className="w-full px-4 py-4">
@@ -23,7 +26,7 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
             <span className="text-sm font-semibold text-gray-300">
               {displayStep}
             </span>
-            <span className="text-sm text-gray-400">/ 총 {totalSteps}단계</span>
+            <span className="text-sm text-gray-400">/ 총 {safeTotalSteps}단계</span>
           </div>
           <span className="text-sm font-medium text-[#00E5DB]">
             {Math.round(progress)}% 완료
@@ -47,9 +50,9 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
           
           {/* 스텝 마커 */}
           <div className="absolute top-0 left-0 w-full h-2.5 flex justify-between px-1">
-            {Array.from({ length: totalSteps }, (_, i) => {
-              const stepProgress = ((i + 1) / totalSteps) * 100;
-              const isCompleted = i < currentStep;
+            {Array.from({ length: safeTotalSteps }, (_, i) => {
+              const stepProgress = ((i + 1) / safeTotalSteps) * 100;
+              const isCompleted = i < safeCurrentStep;
 
               return (
                 <div

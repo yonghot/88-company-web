@@ -11,6 +11,7 @@ import { chatFlow, getNextStep, validateInput } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ClientStorage } from '@/lib/storage/client-storage';
 
 export function ChatInterface() {
   const [chatState, setChatState] = useState<ChatState>({
@@ -21,6 +22,7 @@ export function ChatInterface() {
   });
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [totalQuestions, setTotalQuestions] = useState(6); // Dynamic total
 
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');  // Store phone for verification
@@ -34,9 +36,56 @@ export function ChatInterface() {
     scrollToBottom();
   }, [chatState.messages]);
 
+  // Listen for localStorage changes to update question count in real-time
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const loadedQuestions = ClientStorage.loadQuestions();
+      if (loadedQuestions && loadedQuestions.length > 0) {
+        const mainSteps = loadedQuestions.filter(q =>
+          q.step !== 'phoneVerification' &&
+          q.step !== 'complete' &&
+          q.step !== 'customService'
+        );
+        setTotalQuestions(mainSteps.length);
+        console.log('Questions updated:', mainSteps.length);
+      }
+    };
+
+    // Listen for storage events (from other tabs/windows)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check periodically for changes in the same tab
+    const interval = setInterval(handleStorageChange, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     // Mark as hydrated on client side
     setIsHydrated(true);
+
+    // Clear completed steps on mount to ensure starting from 0
+    setCompletedSteps([]);
+    console.log('ChatInterface mounted - completedSteps reset to []');
+
+    // Load dynamic questions from localStorage to get actual count
+    const loadedQuestions = ClientStorage.loadQuestions();
+    if (loadedQuestions && loadedQuestions.length > 0) {
+      // Count main steps only (excluding sub-steps like phoneVerification)
+      const mainSteps = loadedQuestions.filter(q =>
+        q.step !== 'phoneVerification' &&
+        q.step !== 'complete' &&
+        q.step !== 'customService' // customService is a sub-step of welcome
+      );
+      setTotalQuestions(mainSteps.length);
+      console.log('Loaded questions count:', mainSteps.length);
+    } else {
+      // Default count if no custom questions
+      setTotalQuestions(6);
+    }
 
     // Show initial welcome message
     const welcomeMessage: Message = {
@@ -123,7 +172,11 @@ export function ChatInterface() {
 
     // Mark current step as completed before moving to next
     if (!completedSteps.includes(chatState.currentStep)) {
-      setCompletedSteps(prev => [...prev, chatState.currentStep]);
+      setCompletedSteps(prev => {
+        const newCompleted = [...prev, chatState.currentStep];
+        console.log('Step completed:', chatState.currentStep, 'Total completed:', newCompleted.length);
+        return newCompleted;
+      });
     }
 
     // Get next step
@@ -221,8 +274,8 @@ export function ChatInterface() {
       {!chatState.isCompleted && isHydrated && (
         <div className="bg-[#1A1F2E]/60 backdrop-blur-sm border-b border-[#2E3544]/50">
           <ProgressBar
-            currentStep={completedSteps?.length || 0}
-            totalSteps={6}
+            currentStep={completedSteps.length}
+            totalSteps={totalQuestions}
           />
         </div>
       )}
