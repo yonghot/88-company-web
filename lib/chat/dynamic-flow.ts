@@ -33,6 +33,13 @@ export class DynamicChatFlow {
   }
 
   async getFlow(): Promise<Record<string, ChatStep>> {
+    // TEMPORARY FIX: Force use static flow until Supabase data is fixed
+    // The dynamic flow in Supabase is missing critical steps like 'customService', 'name', etc.
+    console.log('⚠️ Using static flow (Supabase data incomplete)');
+    return staticFlow;
+
+    // Original code commented out for now:
+    /*
     await this.ensureLoaded();
 
     if (!this.questionsMap || this.questionsMap.size === 0) {
@@ -47,6 +54,7 @@ export class DynamicChatFlow {
     });
 
     return flow;
+    */
   }
 
   private convertQuestionToStep(question: ChatQuestion): ChatStep {
@@ -112,6 +120,11 @@ export class DynamicChatFlow {
   }
 
   async getStartStep(): Promise<string> {
+    // TEMPORARY FIX: Use static flow start step
+    return 'welcome';
+
+    // Original code commented out for now:
+    /*
     try {
       const service = getDynamicQuestionService();
       const flow = await service.loadFlow();
@@ -120,6 +133,7 @@ export class DynamicChatFlow {
       console.error('Failed to get start step:', error);
       return 'welcome';
     }
+    */
   }
 
   async getQuestion(step: string): Promise<ChatQuestion | null> {
