@@ -87,11 +87,22 @@ export class DynamicChatFlow {
       dynamicFlow[question.step] = step;
     });
 
+    // 필수 단계들이 없으면 정적 플로우에서 추가
+    const requiredSteps = ['customService', 'name', 'phoneVerification', 'complete'];
+
     // customService 단계가 없으면 정적 플로우에서 추가
     if (!dynamicFlow['customService'] && staticFlow['customService']) {
       dynamicFlow['customService'] = {
         ...staticFlow['customService'],
         nextStep: () => 'budget'  // customService 다음은 budget으로
+      };
+    }
+
+    // name 단계가 없으면 정적 플로우에서 추가 (중요!)
+    if (!dynamicFlow['name'] && staticFlow['name']) {
+      dynamicFlow['name'] = {
+        ...staticFlow['name'],
+        nextStep: () => 'phone'  // name 다음은 phone으로
       };
     }
 
@@ -108,6 +119,17 @@ export class DynamicChatFlow {
       dynamicFlow['complete'] = {
         ...staticFlow['complete'],
         nextStep: () => 'complete'
+      };
+    }
+
+    // details 스텝의 nextStep이 name을 가리키는지 확인
+    if (dynamicFlow['details'] && !dynamicFlow['name']) {
+      // name이 없으면 details → phone으로 직접 연결
+      const originalNextStep = dynamicFlow['details'].nextStep;
+      dynamicFlow['details'].nextStep = (value?: string) => {
+        const next = originalNextStep ? originalNextStep(value) : 'phone';
+        // name이 없으면 phone으로 스킵
+        return next === 'name' ? 'phone' : next;
       };
     }
 

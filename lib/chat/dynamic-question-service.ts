@@ -91,7 +91,13 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
       // 클라이언트 사이드에서는 localStorage 사용
       if (typeof window !== 'undefined') {
         const localQuestions = ClientStorage.loadQuestions();
-        if (localQuestions && localQuestions.length > 0) {
+        // localStorage 데이터가 불완전하면 무시하고 정적 플로우 사용
+        // 필수 스텝이 하나라도 빠지면 정적 플로우 사용
+        const requiredSteps = ['welcome', 'budget', 'timeline', 'details', 'name', 'phone'];
+        const hasAllRequired = localQuestions && localQuestions.length > 0 &&
+          requiredSteps.every(step => localQuestions.some(q => q.step === step));
+
+        if (hasAllRequired) {
           const questionsMap = new Map<string, ChatQuestion>();
           localQuestions.forEach(q => questionsMap.set(q.step, q));
           this.cache.questions = questionsMap;

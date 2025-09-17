@@ -216,6 +216,118 @@ export default function QuestionsManagement() {
                 새로고침
               </button>
               <button
+                onClick={() => {
+                  if (confirm('정말 모든 질문을 초기화하시겠습니까?\n기본 질문으로 복구됩니다.')) {
+                    // localStorage 초기화
+                    localStorage.removeItem('admin_questions');
+                    localStorage.removeItem('chatQuestions');
+                    localStorage.removeItem('questionsUpdated');
+
+                    // 동적 플로우 캐시 무효화
+                    const flowService = getDynamicChatFlow();
+                    flowService.invalidateCache();
+
+                    // 다른 탭/창에 변경 사항 알림
+                    window.localStorage.setItem('questionsUpdated', Date.now().toString());
+
+                    alert('질문이 초기화되었습니다. 기본 질문을 사용합니다.');
+                    loadQuestions();
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                초기화
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('기본 질문 세트를 로드하시겠습니까?\n현재 질문들이 대체됩니다.')) {
+                    // 기본 질문 세트 생성
+                    const defaultQuestions: ChatQuestion[] = [
+                      {
+                        step: 'welcome',
+                        type: 'select',
+                        question: '안녕하세요! 88입니다. 어떤 서비스를 찾고 계신가요?',
+                        options: ['창업 컨설팅', '경영 전략 수립', '마케팅 전략', '투자 유치 지원', '기타 문의'],
+                        next_step: 'budget',
+                        is_active: true,
+                        order_index: 0
+                      },
+                      {
+                        step: 'budget',
+                        type: 'select',
+                        question: '예상하시는 예산 규모는 어느 정도인가요?',
+                        options: ['500만원 미만', '500만원 - 1,000만원', '1,000만원 - 3,000만원', '3,000만원 - 5,000만원', '5,000만원 이상', '협의 필요'],
+                        next_step: 'timeline',
+                        is_active: true,
+                        order_index: 1
+                      },
+                      {
+                        step: 'timeline',
+                        type: 'select',
+                        question: '프로젝트는 언제 시작하실 예정인가요?',
+                        options: ['즉시 시작', '1주일 이내', '1개월 이내', '3개월 이내', '아직 미정'],
+                        next_step: 'details',
+                        is_active: true,
+                        order_index: 2
+                      },
+                      {
+                        step: 'details',
+                        type: 'textarea',
+                        question: '프로젝트에 대해 추가로 알려주실 내용이 있나요?',
+                        placeholder: '현재 상황, 목표, 특별한 요구사항 등을 자유롭게 작성해주세요...',
+                        next_step: 'name',
+                        is_active: true,
+                        order_index: 3
+                      },
+                      {
+                        step: 'name',
+                        type: 'text',
+                        question: '성함을 알려주세요.',
+                        placeholder: '홍길동',
+                        next_step: 'phone',
+                        is_active: true,
+                        order_index: 4
+                      },
+                      {
+                        step: 'phone',
+                        type: 'text',
+                        question: '연락 가능한 전화번호를 입력해주세요.',
+                        placeholder: '010-0000-0000',
+                        next_step: 'complete',
+                        is_active: true,
+                        order_index: 5
+                      },
+                      {
+                        step: 'complete',
+                        type: 'text',
+                        question: '감사합니다! 입력하신 정보를 확인했습니다. 빠른 시일 내에 연락드리겠습니다. 😊',
+                        next_step: '',
+                        is_active: true,
+                        order_index: 6
+                      }
+                    ];
+
+                    // localStorage에 저장
+                    ClientStorage.saveQuestions(defaultQuestions);
+
+                    // 동적 플로우 캐시 무효화
+                    const flowService = getDynamicChatFlow();
+                    flowService.invalidateCache();
+
+                    // 다른 탭/창에 변경 사항 알림
+                    window.localStorage.setItem('questionsUpdated', Date.now().toString());
+
+                    alert('기본 질문 세트를 로드했습니다.');
+                    loadQuestions();
+                  }
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                기본 질문 로드
+              </button>
+              <button
                 onClick={() => setIsCreating(true)}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
               >
