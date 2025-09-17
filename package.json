@@ -9,7 +9,9 @@
     "lint": "eslint",
     "migrate": "node scripts/migrate-to-supabase.js",
     "db:setup": "echo 'Please run the SQL schema in Supabase dashboard'",
-    "test:sms": "tsx scripts/test-sms-verification.ts"
+    "test:sms": "tsx scripts/test-nhn-sms.ts",
+    "test:env": "tsx scripts/check-env.ts",
+    "test:verification": "tsx scripts/test-verification-flow.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",

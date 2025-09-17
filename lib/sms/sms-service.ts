@@ -1,97 +1,103 @@
-import { SMSProvider, SMSResult, SMSConfig, SMSProviderError } from './types';
-import { DemoSMSProvider } from './providers/demo';
-import { TwilioSMSProvider } from './providers/twilio';
-import { AligoSMSProvider } from './providers/aligo';
+import { SMSResult, SMSProviderError } from './types';
 import { NHNCloudSMSProvider } from './providers/nhncloud';
 import { logger } from '@/lib/utils/logger';
 
 /**
- * SMS 서비스 관리자
- * 설정에 따라 적절한 SMS 프로바이더를 선택하고 관리
+ * NHN Cloud SMS 서비스
+ * NHN Cloud SMS API를 통한 문자 발송 서비스
  */
 export class SMSService {
-  private provider: SMSProvider;
+  private provider: NHNCloudSMSProvider;
   private static instance: SMSService;
+  private retryAttempts = 3;
+  private retryDelay = 1000; // 1초
 
-  constructor(config?: SMSConfig) {
-    // 환경 변수에서 설정 로드
-    const providerType = config?.provider || process.env.SMS_PROVIDER || 'demo';
+  constructor() {
+    // NHN Cloud 설정 검증
+    const appKey = process.env.NHN_APP_KEY;
+    const secretKey = process.env.NHN_SECRET_KEY;
+    const sendNo = process.env.NHN_SEND_NO;
 
-    switch (providerType) {
-      case 'nhncloud':
-        this.provider = new NHNCloudSMSProvider({
-          appKey: config?.nhncloud?.appKey || process.env.NHN_APP_KEY || '',
-          secretKey: config?.nhncloud?.secretKey || process.env.NHN_SECRET_KEY || '',
-          sendNo: config?.nhncloud?.sendNo || process.env.NHN_SEND_NO || '',
-          projectId: config?.nhncloud?.projectId || process.env.NHN_PROJECT_ID
-        });
-        break;
-
-      case 'twilio':
-        this.provider = new TwilioSMSProvider({
-          accountSid: config?.twilio?.accountSid || process.env.TWILIO_ACCOUNT_SID || '',
-          authToken: config?.twilio?.authToken || process.env.TWILIO_AUTH_TOKEN || '',
-          fromNumber: config?.twilio?.fromNumber || process.env.TWILIO_PHONE_NUMBER || ''
-        });
-        break;
-
-      case 'aligo':
-        this.provider = new AligoSMSProvider({
-          apiKey: config?.aligo?.apiKey || process.env.ALIGO_API_KEY || '',
-          userId: config?.aligo?.userId || process.env.ALIGO_USER_ID || '',
-          sender: config?.aligo?.sender || process.env.ALIGO_SENDER || ''
-        });
-        break;
-
-      case 'demo':
-      default:
-        this.provider = new DemoSMSProvider();
-        break;
+    if (!appKey || !secretKey || !sendNo) {
+      throw new Error(
+        'NHN Cloud SMS 설정이 필요합니다. 환경 변수를 확인하세요:\n' +
+        '- NHN_APP_KEY\n' +
+        '- NHN_SECRET_KEY\n' +
+        '- NHN_SEND_NO'
+      );
     }
 
-    logger.info(`📱 SMS Service initialized with ${this.provider.getName()} provider`);
+    // NHN Cloud 프로바이더 초기화
+    this.provider = new NHNCloudSMSProvider({
+      appKey,
+      secretKey,
+      sendNo,
+      projectId: process.env.NHN_PROJECT_ID
+    });
+
+    logger.info('📱 NHN Cloud SMS 서비스 초기화 완료');
   }
 
   /**
    * 싱글톤 인스턴스 가져오기
    */
-  static getInstance(config?: SMSConfig): SMSService {
+  static getInstance(): SMSService {
     if (!SMSService.instance) {
-      SMSService.instance = new SMSService(config);
+      SMSService.instance = new SMSService();
     }
     return SMSService.instance;
   }
 
   /**
-   * SMS 발송
+   * SMS 발송 (재시도 로직 포함)
    */
   async sendSMS(phone: string, message: string): Promise<SMSResult> {
-    try {
-      // 전화번호 유효성 검사
-      if (!this.isValidPhoneNumber(phone)) {
-        throw new Error('유효하지 않은 전화번호 형식입니다');
-      }
-
-      // SMS 발송
-      const result = await this.provider.sendSMS(phone, message);
-
-      // 로깅
-      if (result.success) {
-        logger.info(`✅ SMS sent successfully via ${result.provider}`);
-      } else {
-        logger.error(`❌ SMS failed via ${result.provider}: ${result.error}`);
-      }
-
-      return result;
-    } catch (error) {
-      logger.error('SMS 발송 오류:', error);
-
-      if (error instanceof SMSProviderError) {
-        throw error;
-      }
-
-      throw new Error('SMS 발송 중 오류가 발생했습니다');
+    // 전화번호 유효성 검사
+    if (!this.isValidPhoneNumber(phone)) {
+      throw new Error('유효하지 않은 전화번호 형식입니다');
     }
+
+    let lastError: any;
+
+    // 재시도 로직
+    for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
+      try {
+        logger.info(`📤 SMS 발송 시도 ${attempt}/${this.retryAttempts}: ${phone}`);
+
+        // SMS 발송
+        const result = await this.provider.sendSMS(phone, message);
+
+        // 성공 시
+        if (result.success) {
+          logger.info(`✅ SMS 발송 성공: ${phone} (시도 ${attempt}회)`);
+          return result;
+        }
+
+        // 실패 시 에러로 처리
+        throw new Error(result.error || 'SMS 발송 실패');
+
+      } catch (error) {
+        lastError = error;
+        logger.error(`❌ SMS 발송 실패 (시도 ${attempt}/${this.retryAttempts}):`, error);
+
+        // 마지막 시도가 아니면 대기 후 재시도
+        if (attempt < this.retryAttempts) {
+          await this.delay(this.retryDelay * attempt); // 점진적 지연
+        }
+      }
+    }
+
+    // 모든 시도 실패
+    logger.error('🚫 SMS 발송 최종 실패:', lastError);
+
+    if (lastError instanceof SMSProviderError) {
+      throw lastError;
+    }
+
+    throw new Error(
+      `SMS 발송에 실패했습니다 (${this.retryAttempts}회 시도).\n` +
+      `에러: ${lastError?.message || '알 수 없는 오류'}`
+    );
   }
 
   /**
@@ -103,21 +109,44 @@ export class SMSService {
   }
 
   /**
-   * 프로바이더 상태 확인
+   * 발송 상태 조회
    */
-  async healthCheck(): Promise<boolean> {
+  async getMessageStatus(requestId: string): Promise<{
+    status: 'pending' | 'success' | 'failed';
+    details?: any;
+  }> {
+    return this.provider.getMessageStatus(requestId);
+  }
+
+  /**
+   * 서비스 상태 확인
+   */
+  async healthCheck(): Promise<{
+    healthy: boolean;
+    provider: string;
+    message?: string;
+  }> {
     try {
-      return await this.provider.healthCheck();
-    } catch {
-      return false;
+      const isHealthy = await this.provider.healthCheck();
+      return {
+        healthy: isHealthy,
+        provider: 'NHN Cloud',
+        message: isHealthy ? '정상' : '연결 실패'
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        provider: 'NHN Cloud',
+        message: `헬스체크 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      };
     }
   }
 
   /**
-   * 현재 프로바이더 이름 가져오기
+   * 발송 가능 여부 확인
    */
-  getProviderName(): string {
-    return this.provider.getName();
+  async canSend(): Promise<{ canSend: boolean; reason?: string }> {
+    return this.provider.canSend();
   }
 
   /**
@@ -151,5 +180,20 @@ export class SMSService {
    */
   static normalizePhoneNumber(phone: string): string {
     return phone.replace(/[^0-9]/g, '');
+  }
+
+  /**
+   * 지연 함수 (재시도용)
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 재시도 설정 변경
+   */
+  setRetryConfig(attempts: number, delay: number): void {
+    this.retryAttempts = Math.max(1, Math.min(5, attempts));
+    this.retryDelay = Math.max(100, Math.min(5000, delay));
   }
 }
