@@ -127,7 +127,7 @@ export class DynamicChatFlow {
       // name이 없으면 details → phone으로 직접 연결
       const originalNextStep = dynamicFlow['details'].nextStep;
       dynamicFlow['details'].nextStep = (value?: string) => {
-        const next = originalNextStep ? originalNextStep(value) : 'phone';
+        const next = originalNextStep ? originalNextStep(value || '') : 'phone';
         // name이 없으면 phone으로 스킵
         return next === 'name' ? 'phone' : next;
       };
