@@ -282,25 +282,40 @@ export function DynamicChatInterface() {
   };
 
   const getProgressSteps = () => {
-    const flow = getCurrentFlow();
-    const currentStepObj = flow[chatState.currentStep];
-    if (!currentStepObj) return 1;
+    // Count actual user responses to determine progress
+    const userMessageCount = chatState.messages.filter(msg => msg.type === 'user').length;
 
-    const orderedSteps = [
-      'welcome', 'customService',
-      'budget', 'timeline', 'details',
-      'name', 'phone', 'complete'
-    ];
+    // Map current step to expected progress stage
+    const stepProgressMap: Record<string, number> = {
+      'welcome': 0,        // Before first answer = 0
+      'customService': 1,  // After choosing "기타 문의"
+      'budget': 1,         // After first answer (service selection)
+      'timeline': 2,       // After budget selection
+      'details': 3,        // After timeline selection
+      'name': 4,           // After details input
+      'phone': 5,          // After name input
+      'phoneVerification': 6, // During phone verification
+      'complete': 7        // Completed
+    };
 
-    const currentIndex = orderedSteps.indexOf(chatState.currentStep);
+    // If we're in welcome state with no user messages, it's step 0
+    if (chatState.currentStep === 'welcome' && userMessageCount === 0) {
+      console.log('📊 Progress: Initial state', { step: 0, userMessages: 0 });
+      return 0;
+    }
+
+    // Use the step mapping, or count user messages as fallback
+    const mappedProgress = stepProgressMap[chatState.currentStep];
+    const calculatedProgress = mappedProgress !== undefined ? mappedProgress : userMessageCount;
 
     console.log('📊 Progress steps:', {
       currentStep: chatState.currentStep,
-      currentIndex,
-      orderedSteps
+      userMessageCount,
+      mappedProgress,
+      calculatedProgress
     });
 
-    return Math.min(Math.max(1, currentIndex + 1), TOTAL_STEPS);
+    return Math.min(calculatedProgress, TOTAL_STEPS);
   };
 
   if (isLoadingFlow) {
