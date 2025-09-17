@@ -28,25 +28,26 @@ console.log('\n📊 진행도 계산:');
 console.log(`  - 전체 질문: ${reducedQuestions.length}개`);
 console.log(`  - customService 제외: ${mainQuestions.length}개`);
 console.log(`  - phone 포함: ${hasPhone ? '예' : '아니오'}`);
-console.log(`  - phoneVerification 추가: ${hasPhone ? '+1' : '0'}`);
+console.log(`  - phoneVerification: phone 단계에 포함 (별도 카운트 ❌)`);
 
-const totalSteps = mainQuestions.length + (hasPhone ? 1 : 0);
+const totalSteps = mainQuestions.length;
 console.log(`\n🎯 결과: ${totalSteps}단계`);
 
 console.log('\n📈 진행 단계:');
-let step = 1;
-mainQuestions.forEach(q => {
-  console.log(`  ${step}/${totalSteps} - ${q.step}`);
-  step++;
+mainQuestions.forEach((q, i) => {
+  const stepNum = i + 1;
+  console.log(`  ${stepNum}/${totalSteps} - ${q.step}`);
+
+  // phone 단계일 때 phoneVerification도 같은 단계로 표시
+  if (q.step === 'phone') {
+    console.log(`  ${stepNum}/${totalSteps} - phoneVerification (phone과 같은 단계)`);
+  }
 });
-if (hasPhone) {
-  console.log(`  ${step}/${totalSteps} - phoneVerification`);
-}
 
 console.log('\n💬 사용자 관점:');
 console.log('  - "질문이 5개인데" → customService를 포함한 경우');
 console.log('  - "질문이 4개인데" → customService를 제외한 경우');
-console.log(`  - "왜 ${totalSteps}단계?" → phone이 있어서 phoneVerification 추가`);
+console.log(`  - "${totalSteps}단계" → 메인 질문 개수와 일치`);
 
 console.log('\n='.repeat(50));
 console.log('시뮬레이션 완료!\n');

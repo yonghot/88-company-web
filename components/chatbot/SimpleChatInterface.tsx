@@ -223,20 +223,21 @@ export function SimpleChatInterface() {
     // customService는 조건부이므로 제외
     const mainQuestions = activeQuestions.filter(q => q.step !== 'customService');
 
-    // phoneVerification은 자동으로 추가되므로 +1
-    const hasPhoneStep = mainQuestions.some(q => q.step === 'phone');
-    const totalSteps = mainQuestions.length + (hasPhoneStep ? 1 : 0);
+    // 총 단계 수 (phoneVerification은 phone 단계에 포함)
+    const totalSteps = mainQuestions.length;
 
     // 현재 단계의 인덱스 찾기 (customService 제외된 목록에서)
     const currentQuestionIndex = mainQuestions.findIndex(q => q.step === chatState.currentStep);
 
     // 특수 단계 처리
     if (chatState.currentStep === 'phoneVerification') {
-      return totalSteps - 1; // 마지막에서 두 번째
+      // phoneVerification은 phone과 같은 단계로 처리
+      const phoneIndex = mainQuestions.findIndex(q => q.step === 'phone');
+      return phoneIndex !== -1 ? phoneIndex + 1 : totalSteps;
     }
 
     if (chatState.currentStep === 'complete') {
-      return totalSteps; // 마지막
+      return totalSteps; // 완료 시 100% 표시
     }
 
     // customService는 진행도에 포함하지 않지만 현재 단계일 때는 이전 단계 유지
@@ -262,9 +263,8 @@ export function SimpleChatInterface() {
     // customService는 조건부이므로 제외 (선택적)
     const mainQuestions = activeQuestions.filter(q => q.step !== 'customService');
 
-    // phoneVerification은 자동으로 추가되므로 +1
-    const hasPhoneStep = mainQuestions.some(q => q.step === 'phone');
-    return mainQuestions.length + (hasPhoneStep ? 1 : 0);
+    // phoneVerification은 phone 단계에 포함되므로 추가하지 않음
+    return mainQuestions.length;
   };
 
   const currentStep = flow[chatState.currentStep];
