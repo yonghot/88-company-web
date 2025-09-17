@@ -38,6 +38,7 @@ export class DynamicChatFlow {
 
     // 동적 질문이 로드되지 않았거나 비어있으면 정적 플로우 사용
     if (!this.questionsMap || this.questionsMap.size === 0) {
+      logger.info('No dynamic questions loaded, using static flow');
       return staticFlow;
     }
 
@@ -51,38 +52,66 @@ export class DynamicChatFlow {
     sortedQuestions.forEach((question, index) => {
       const step = this.convertQuestionToStep(question);
 
-      // next_step이 없으면 다음 순서의 질문으로 자동 설정
-      if (!question.next_step && index < sortedQuestions.length - 1) {
-        const nextQuestion = sortedQuestions[index + 1];
-        step.nextStep = () => nextQuestion.step;
-      } else if (question.next_step) {
-        // 동적 next_step 처리 (조건부 로직 포함)
-        step.nextStep = (value?: string) => {
-          // welcome 단계에서 '기타 문의' 선택 시 customService로 이동
-          if (question.step === 'welcome' && value === '기타 문의') {
-            return 'customService';
-          }
-          // phone 단계 후 phoneVerification으로 이동
-          if (question.step === 'phone') {
-            return 'phoneVerification';
-          }
-          return question.next_step || 'complete';
-        };
-      }
+      // 기본 다음 단계 설정 (다음 순서의 질문 또는 complete)
+      const nextQuestionStep = index < sortedQuestions.length - 1
+        ? sortedQuestions[index + 1].step
+        : 'complete';
+
+      // nextStep 함수 설정 - 모든 경우를 처리
+      step.nextStep = (value?: string) => {
+        // 특별한 조건부 로직 처리
+        // welcome 단계에서 '기타 문의' 선택 시
+        if (question.step === 'welcome' && value === '기타 문의') {
+          return 'customService';
+        }
+
+        // phone 단계는 항상 phoneVerification으로
+        if (question.step === 'phone') {
+          return 'phoneVerification';
+        }
+
+        // phoneVerification 단계는 complete로
+        if (question.step === 'phoneVerification') {
+          return 'complete';
+        }
+
+        // 명시적 next_step이 있고 비어있지 않으면 사용
+        if (question.next_step && question.next_step.trim() !== '') {
+          return question.next_step;
+        }
+
+        // 그 외의 경우 다음 순서의 질문으로
+        return nextQuestionStep;
+      };
 
       dynamicFlow[question.step] = step;
     });
 
+    // customService 단계가 없으면 정적 플로우에서 추가
+    if (!dynamicFlow['customService'] && staticFlow['customService']) {
+      dynamicFlow['customService'] = {
+        ...staticFlow['customService'],
+        nextStep: () => 'budget'  // customService 다음은 budget으로
+      };
+    }
+
     // phoneVerification 단계가 없으면 정적 플로우에서 추가
     if (!dynamicFlow['phoneVerification'] && staticFlow['phoneVerification']) {
-      dynamicFlow['phoneVerification'] = staticFlow['phoneVerification'];
+      dynamicFlow['phoneVerification'] = {
+        ...staticFlow['phoneVerification'],
+        nextStep: () => 'complete'
+      };
     }
 
     // complete 단계가 없으면 정적 플로우에서 추가
     if (!dynamicFlow['complete'] && staticFlow['complete']) {
-      dynamicFlow['complete'] = staticFlow['complete'];
+      dynamicFlow['complete'] = {
+        ...staticFlow['complete'],
+        nextStep: () => 'complete'
+      };
     }
 
+    logger.debug('Dynamic flow created with steps:', Object.keys(dynamicFlow));
     return dynamicFlow;
   }
 
@@ -90,9 +119,9 @@ export class DynamicChatFlow {
     const step: ChatStep = {
       id: question.step,
       question: question.question,
-      inputType: this.mapQuestionType(question.type),
-      nextStep: () => question.next_step || ''
-    };
+      inputType: this.mapQuestionType(question.type)
+      // nextStep은 getFlow()에서 설정됨
+    } as ChatStep;
 
     if (question.placeholder) {
       step.placeholder = question.placeholder;

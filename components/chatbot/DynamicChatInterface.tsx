@@ -11,6 +11,7 @@ import { getDynamicChatFlow } from '@/lib/chat/dynamic-flow';
 import { chatFlow as staticFlow, validateInput } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 const TOTAL_STEPS = 7;
 
@@ -187,8 +188,14 @@ export function DynamicChatInterface() {
     setTimeout(async () => {
       setIsTyping(false);
 
-      const nextStepId = currentStep.nextStep ? currentStep.nextStep(value) : null;
+      // 디버깅: currentStep 정보 확인
+      if (!currentStep.nextStep) {
+        logger.error('❌ nextStep function is missing for step:', chatState.currentStep);
+        logger.error('Current step data:', currentStep);
+      }
 
+      const nextStepId = currentStep.nextStep ? currentStep.nextStep(value) : null;
+      logger.debug('Next step ID:', nextStepId, 'from step:', chatState.currentStep);
 
       if (nextStepId === 'complete' || chatState.currentStep === 'complete') {
         setChatState(prev => ({
@@ -212,7 +219,7 @@ export function DynamicChatInterface() {
           leadData: updatedLeadData
         }));
       } else {
-        console.error('❌ Next step not found or invalid:', nextStepId, 'Available steps:', Object.keys(flow));
+        logger.error('❌ Next step not found or invalid:', nextStepId, 'Available steps:', Object.keys(flow));
 
         const fallbackFlow = staticFlow.welcome;
         const fallbackMessage: Message = {
