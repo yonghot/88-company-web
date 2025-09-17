@@ -72,6 +72,12 @@ export class LocalStorageQuestionManager implements QuestionManager {
     const questions = this.getQuestions();
     const flow: Record<string, ChatStep> = {};
 
+    // 유효한 step ID 수집
+    const validStepIds = new Set(questions.map(q => q.step));
+    validStepIds.add('phoneVerification');
+    validStepIds.add('complete');
+    validStepIds.add('customService');
+
     questions
       .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
       .forEach((question, index) => {
@@ -84,7 +90,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
           placeholder: question.placeholder,
           options: question.options,
           validation: this.getValidation(question),
-          nextStep: this.createNextStepFunction(question, nextQuestion)
+          nextStep: this.createNextStepFunction(question, nextQuestion, validStepIds)
         };
       });
 
@@ -162,7 +168,8 @@ export class LocalStorageQuestionManager implements QuestionManager {
 
   private createNextStepFunction(
     question: ChatQuestion,
-    nextQuestion?: ChatQuestion
+    nextQuestion?: ChatQuestion,
+    validStepIds?: Set<string>
   ): (value?: string) => string {
     return (value?: string) => {
       // 특수 케이스 처리
@@ -171,7 +178,14 @@ export class LocalStorageQuestionManager implements QuestionManager {
       }
 
       if (question.step === 'customService') {
-        return 'budget';
+        // customService 다음은 budget으로, budget이 없으면 다음 질문으로
+        if (validStepIds?.has('budget')) {
+          return 'budget';
+        }
+        if (nextQuestion) {
+          return nextQuestion.step;
+        }
+        return 'name'; // 또는 다음 유효한 단계로
       }
 
       if (question.step === 'phone') {
@@ -182,8 +196,17 @@ export class LocalStorageQuestionManager implements QuestionManager {
         return 'complete';
       }
 
-      // 명시적 next_step 사용
+      // 명시적 next_step이 있고 유효한 경우
       if (question.next_step) {
+        // next_step이 유효한지 확인
+        if (validStepIds && !validStepIds.has(question.next_step) && question.next_step !== 'complete') {
+          console.warn(`Invalid next_step "${question.next_step}" for question "${question.step}". Using fallback.`);
+          // 다음 질문으로 폴백
+          if (nextQuestion) {
+            return nextQuestion.step;
+          }
+          return 'complete';
+        }
         return question.next_step;
       }
 

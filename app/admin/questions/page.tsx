@@ -60,7 +60,33 @@ export default function QuestionsManagement() {
   const handleDelete = (step: string) => {
     if (!confirm('정말 이 질문을 삭제하시겠습니까?')) return;
 
-    const updatedQuestions = questions.filter(q => q.step !== step);
+    // 삭제할 질문 찾기
+    const deletedIndex = questions.findIndex(q => q.step === step);
+    const deletedQuestion = questions[deletedIndex];
+
+    // 삭제된 질문을 참조하는 모든 질문의 next_step을 업데이트
+    let updatedQuestions = questions.filter(q => q.step !== step);
+
+    // 삭제된 질문을 가리키던 질문들의 next_step을 다음 질문으로 변경
+    updatedQuestions = updatedQuestions.map(q => {
+      if (q.next_step === step) {
+        // 삭제된 질문의 next_step으로 대체하거나, 없으면 다음 순서의 질문으로
+        const nextIndex = updatedQuestions.findIndex(uq => uq.order_index > q.order_index);
+        const nextQuestion = nextIndex !== -1 ? updatedQuestions[nextIndex] : null;
+
+        return {
+          ...q,
+          next_step: deletedQuestion?.next_step || nextQuestion?.step || 'complete'
+        };
+      }
+      return q;
+    });
+
+    // order_index 재정렬
+    updatedQuestions = updatedQuestions
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((q, i) => ({ ...q, order_index: i }));
+
     setQuestions(updatedQuestions);
     questionManager.saveQuestions(updatedQuestions);
     alert('질문이 삭제되었습니다.');

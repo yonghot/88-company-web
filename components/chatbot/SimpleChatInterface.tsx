@@ -11,8 +11,6 @@ import { questionManager } from '@/lib/chat/question-manager';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
 
-const TOTAL_STEPS = 7;
-
 export function SimpleChatInterface() {
   const [chatState, setChatState] = useState<ChatState>({
     currentStep: 'welcome',
@@ -218,25 +216,49 @@ export function SimpleChatInterface() {
   };
 
   const getProgressSteps = () => {
-    const userMessageCount = chatState.messages.filter(msg => msg.type === 'user').length;
-    const stepProgressMap: Record<string, number> = {
-      'welcome': 0,
-      'customService': 1,
-      'budget': 1,
-      'timeline': 2,
-      'details': 3,
-      'name': 4,
-      'phone': 5,
-      'phoneVerification': 6,
-      'complete': 7
-    };
+    // 동적으로 총 단계 수 계산
+    const questions = questionManager.getQuestions();
+    const activeQuestions = questions.filter(q => q.is_active !== false);
 
-    if (chatState.currentStep === 'welcome' && userMessageCount === 0) {
-      return 0;
+    // phoneVerification은 자동으로 추가되므로 +1
+    const hasPhoneStep = activeQuestions.some(q => q.step === 'phone');
+    const totalSteps = activeQuestions.length + (hasPhoneStep ? 1 : 0);
+
+    // 현재 단계의 인덱스 찾기
+    const currentQuestionIndex = activeQuestions.findIndex(q => q.step === chatState.currentStep);
+
+    // 특수 단계 처리
+    if (chatState.currentStep === 'phoneVerification') {
+      return totalSteps - 1; // 마지막에서 두 번째
     }
 
-    const mappedProgress = stepProgressMap[chatState.currentStep];
-    return Math.min(mappedProgress ?? userMessageCount, TOTAL_STEPS);
+    if (chatState.currentStep === 'complete') {
+      return totalSteps; // 마지막
+    }
+
+    // 일반 질문의 경우
+    if (currentQuestionIndex !== -1) {
+      return currentQuestionIndex + 1;
+    }
+
+    // customService 같은 조건부 단계 처리
+    if (chatState.currentStep === 'customService') {
+      // welcome 다음 단계로 처리
+      return 1;
+    }
+
+    // 사용자 메시지 수로 폴백
+    const userMessageCount = chatState.messages.filter(msg => msg.type === 'user').length;
+    return Math.min(userMessageCount, totalSteps);
+  };
+
+  const getTotalSteps = () => {
+    const questions = questionManager.getQuestions();
+    const activeQuestions = questions.filter(q => q.is_active !== false);
+
+    // phoneVerification은 자동으로 추가되므로 +1
+    const hasPhoneStep = activeQuestions.some(q => q.step === 'phone');
+    return activeQuestions.length + (hasPhoneStep ? 1 : 0);
   };
 
   const currentStep = flow[chatState.currentStep];
@@ -257,7 +279,7 @@ export function SimpleChatInterface() {
       {!chatState.isCompleted && (
         <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-2">
           <div className="max-w-4xl mx-auto">
-            <ProgressBar currentStep={getProgressSteps()} totalSteps={TOTAL_STEPS} />
+            <ProgressBar currentStep={getProgressSteps()} totalSteps={getTotalSteps()} />
           </div>
         </div>
       )}
