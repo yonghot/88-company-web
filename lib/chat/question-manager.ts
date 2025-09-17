@@ -172,20 +172,19 @@ export class LocalStorageQuestionManager implements QuestionManager {
     validStepIds?: Set<string>
   ): (value?: string) => string {
     return (value?: string) => {
-      // 특수 케이스 처리
-      if (question.step === 'welcome' && value === '기타 문의') {
-        return 'customService';
-      }
+      // 모든 welcome 선택지가 동일한 플로우를 따르도록 수정
+      // '기타 문의'를 선택해도 바로 budget으로 이동
 
+      // customService 처리 (비활성화됨)
       if (question.step === 'customService') {
-        // customService 다음은 budget으로, budget이 없으면 다음 질문으로
+        // customService가 활성화된 경우에만 처리 (현재는 비활성)
         if (validStepIds?.has('budget')) {
           return 'budget';
         }
         if (nextQuestion) {
           return nextQuestion.step;
         }
-        return 'name'; // 또는 다음 유효한 단계로
+        return 'name';
       }
 
       if (question.step === 'phone') {
@@ -238,7 +237,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
         question: '어떤 도움이 필요하신지 자세히 알려주세요.',
         placeholder: '필요하신 서비스를 자세히 설명해주세요...',
         next_step: 'budget',
-        is_active: true,
+        is_active: false,  // 비활성화 - 모든 선택지가 동일한 플로우를 따름
         order_index: 1
       },
       {
