@@ -10,8 +10,7 @@ import { Message, ChatState, LeadData } from '@/lib/types';
 import { getDynamicChatFlow } from '@/lib/chat/dynamic-flow';
 import { chatFlow as staticFlow, validateInput } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
-import { Sparkles, MessageCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Sparkles } from 'lucide-react';
 
 const TOTAL_STEPS = 7;
 
@@ -95,16 +94,8 @@ export function DynamicChatInterface() {
     const flow = getCurrentFlow();
     const currentStep = flow[chatState.currentStep];
 
-    console.log('🚨 DEBUG handleUserInput:', {
-      currentStep: chatState.currentStep,
-      value,
-      flowKeys: Object.keys(flow),
-      currentStepExists: !!currentStep
-    });
 
     if (!currentStep) {
-      console.error('❌ Current step not found:', chatState.currentStep, 'Available steps:', Object.keys(flow));
-
       const fallbackMessage: Message = {
         id: uuidv4(),
         type: 'bot',
@@ -171,12 +162,6 @@ export function DynamicChatInterface() {
 
       const nextStepId = currentStep.nextStep ? currentStep.nextStep(value) : null;
 
-      console.log('🚨 DEBUG nextStep:', {
-        currentStepId: chatState.currentStep,
-        nextStepId,
-        nextStepExists: nextStepId ? !!flow[nextStepId] : false,
-        flowKeys: Object.keys(flow)
-      });
 
       if (nextStepId === 'complete' || chatState.currentStep === 'complete') {
         setChatState(prev => ({
@@ -300,7 +285,6 @@ export function DynamicChatInterface() {
 
     // If we're in welcome state with no user messages, it's step 0
     if (chatState.currentStep === 'welcome' && userMessageCount === 0) {
-      console.log('📊 Progress: Initial state', { step: 0, userMessages: 0 });
       return 0;
     }
 
@@ -308,12 +292,6 @@ export function DynamicChatInterface() {
     const mappedProgress = stepProgressMap[chatState.currentStep];
     const calculatedProgress = mappedProgress !== undefined ? mappedProgress : userMessageCount;
 
-    console.log('📊 Progress steps:', {
-      currentStep: chatState.currentStep,
-      userMessageCount,
-      mappedProgress,
-      calculatedProgress
-    });
 
     return Math.min(calculatedProgress, TOTAL_STEPS);
   };

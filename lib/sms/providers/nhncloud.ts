@@ -1,5 +1,6 @@
 import { SMSProvider, SMSResult, SMSProviderError } from '../types';
 import crypto from 'crypto';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * NHN Cloud SMS 프로바이더 구현
@@ -82,7 +83,7 @@ export class NHNCloudSMSProvider implements SMSProvider {
 
       // NHN Cloud API 응답 처리
       if (data.header.isSuccessful) {
-        console.log(`✅ SMS sent via NHN Cloud to ${formattedPhone}`);
+        logger.info(`✅ SMS sent via NHN Cloud to ${formattedPhone}`);
 
         return {
           success: true,
@@ -110,7 +111,7 @@ export class NHNCloudSMSProvider implements SMSProvider {
         throw error;
       }
 
-      console.error('NHN Cloud SMS 오류:', error);
+      logger.error('NHN Cloud SMS 오류:', error);
       throw new SMSProviderError(
         'NHN Cloud SMS 발송 중 오류가 발생했습니다',
         'nhncloud',
@@ -170,7 +171,7 @@ export class NHNCloudSMSProvider implements SMSProvider {
         details: data
       };
     } catch (error) {
-      console.error('발송 결과 조회 실패:', error);
+      logger.error('발송 결과 조회 실패:', error);
       return {
         status: 'failed',
         details: error
@@ -198,7 +199,7 @@ export class NHNCloudSMSProvider implements SMSProvider {
       const data = await response.json();
       return data.header?.isSuccessful === true;
     } catch (error) {
-      console.error('NHN Cloud health check 실패:', error);
+      logger.error('NHN Cloud health check 실패:', error);
       return false;
     }
   }
@@ -312,7 +313,7 @@ export class NHNCloudSMSProvider implements SMSProvider {
         data
       );
     } catch (error) {
-      console.error('NHN Cloud 대량 발송 오류:', error);
+      logger.error('NHN Cloud 대량 발송 오류:', error);
       throw error;
     }
   }

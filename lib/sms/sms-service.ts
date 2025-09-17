@@ -3,6 +3,7 @@ import { DemoSMSProvider } from './providers/demo';
 import { TwilioSMSProvider } from './providers/twilio';
 import { AligoSMSProvider } from './providers/aligo';
 import { NHNCloudSMSProvider } from './providers/nhncloud';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * SMS 서비스 관리자
@@ -48,7 +49,7 @@ export class SMSService {
         break;
     }
 
-    console.log(`📱 SMS Service initialized with ${this.provider.getName()} provider`);
+    logger.info(`📱 SMS Service initialized with ${this.provider.getName()} provider`);
   }
 
   /**
@@ -76,14 +77,14 @@ export class SMSService {
 
       // 로깅
       if (result.success) {
-        console.log(`✅ SMS sent successfully via ${result.provider}`);
+        logger.info(`✅ SMS sent successfully via ${result.provider}`);
       } else {
-        console.error(`❌ SMS failed via ${result.provider}: ${result.error}`);
+        logger.error(`❌ SMS failed via ${result.provider}: ${result.error}`);
       }
 
       return result;
     } catch (error) {
-      console.error('SMS 발송 오류:', error);
+      logger.error('SMS 발송 오류:', error);
 
       if (error instanceof SMSProviderError) {
         throw error;
