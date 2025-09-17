@@ -7,7 +7,7 @@ export const chatFlow: Record<string, ChatStep> = {
     question: chatQuestions.welcome.question,
     inputType: 'select',
     options: chatQuestions.welcome.options,
-    nextStep: (value) => getNextId('welcome', value)
+    nextStep: (value) => getNextId('welcome', value || '')
   },
   
   customService: {

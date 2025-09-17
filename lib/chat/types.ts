@@ -15,7 +15,7 @@ export interface ChatStep {
   options?: string[];
   placeholder?: string;
   validation?: (value: string) => boolean;
-  nextStep?: (value: string) => string;
+  nextStep?: (value?: string) => string;
 }
 
 export interface ChatState {
