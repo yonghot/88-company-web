@@ -17,7 +17,7 @@ const TOTAL_STEPS = 7;
 
 export function DynamicChatInterface() {
   const [chatState, setChatState] = useState<ChatState>({
-    currentStep: 'service_type',
+    currentStep: 'welcome',
     messages: [],
     leadData: {},
     isCompleted: false
@@ -95,8 +95,26 @@ export function DynamicChatInterface() {
     const flow = getCurrentFlow();
     const currentStep = flow[chatState.currentStep];
 
+    console.log('🚨 DEBUG handleUserInput:', {
+      currentStep: chatState.currentStep,
+      value,
+      flowKeys: Object.keys(flow),
+      currentStepExists: !!currentStep
+    });
+
     if (!currentStep) {
-      console.error('Current step not found:', chatState.currentStep);
+      console.error('❌ Current step not found:', chatState.currentStep, 'Available steps:', Object.keys(flow));
+
+      const fallbackMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: '죄송합니다. 시스템 오류가 발생했습니다. 페이지를 새로고침해주세요.',
+        timestamp: new Date()
+      };
+      setChatState(prev => ({
+        ...prev,
+        messages: [...prev.messages, fallbackMessage]
+      }));
       return;
     }
 
@@ -129,14 +147,11 @@ export function DynamicChatInterface() {
     const updatedLeadData: LeadData = { ...chatState.leadData };
 
     const stepMapping: Record<string, keyof LeadData> = {
-      'service_type': 'service',
       'welcome': 'service',
       'customService': 'service',
-      'service_details': 'service',
       'budget': 'budget',
       'timeline': 'timeline',
       'details': 'message',
-      'additional_info': 'message',
       'name': 'name',
       'phone': 'phone'
     };
@@ -156,7 +171,20 @@ export function DynamicChatInterface() {
 
       const nextStepId = currentStep.nextStep ? currentStep.nextStep(value) : null;
 
-      if (nextStepId && flow[nextStepId]) {
+      console.log('🚨 DEBUG nextStep:', {
+        currentStepId: chatState.currentStep,
+        nextStepId,
+        nextStepExists: nextStepId ? !!flow[nextStepId] : false,
+        flowKeys: Object.keys(flow)
+      });
+
+      if (nextStepId === 'complete' || chatState.currentStep === 'complete') {
+        setChatState(prev => ({
+          ...prev,
+          isCompleted: true,
+          leadData: updatedLeadData
+        }));
+      } else if (nextStepId && flow[nextStepId]) {
         const nextStep = flow[nextStepId];
         const botMessage: Message = {
           id: uuidv4(),
@@ -171,10 +199,21 @@ export function DynamicChatInterface() {
           messages: [...prev.messages, botMessage],
           leadData: updatedLeadData
         }));
-      } else if (chatState.currentStep === 'complete' || nextStepId === 'complete') {
+      } else {
+        console.error('❌ Next step not found or invalid:', nextStepId, 'Available steps:', Object.keys(flow));
+
+        const fallbackFlow = staticFlow.welcome;
+        const fallbackMessage: Message = {
+          id: uuidv4(),
+          type: 'bot',
+          content: '문제가 발생했습니다. 다시 시작합니다.\n\n' + fallbackFlow.question,
+          timestamp: new Date()
+        };
+
         setChatState(prev => ({
           ...prev,
-          isCompleted: true,
+          currentStep: 'welcome',
+          messages: [...prev.messages, fallbackMessage],
           leadData: updatedLeadData
         }));
       }
@@ -248,12 +287,19 @@ export function DynamicChatInterface() {
     if (!currentStepObj) return 1;
 
     const orderedSteps = [
-      'service_type', 'welcome', 'customService', 'service_details',
-      'budget', 'timeline', 'details', 'additional_info',
+      'welcome', 'customService',
+      'budget', 'timeline', 'details',
       'name', 'phone', 'complete'
     ];
 
     const currentIndex = orderedSteps.indexOf(chatState.currentStep);
+
+    console.log('📊 Progress steps:', {
+      currentStep: chatState.currentStep,
+      currentIndex,
+      orderedSteps
+    });
+
     return Math.min(Math.max(1, currentIndex + 1), TOTAL_STEPS);
   };
 

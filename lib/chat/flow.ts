@@ -83,23 +83,43 @@ export const chatFlow: Record<string, ChatStep> = {
 };
 
 export const getNextStep = (currentStepId: string, userInput: string): ChatStep | null => {
-  console.log('🔍 getNextStep DEBUG:', { currentStepId, userInput });
+  console.log('🔍 getNextStep DEBUG:', {
+    currentStepId,
+    userInput,
+    availableSteps: Object.keys(chatFlow)
+  });
 
   const currentStep = chatFlow[currentStepId];
-  console.log('🔍 currentStep found:', !!currentStep);
 
-  if (!currentStep || !currentStep.nextStep) {
-    console.log('🔍 No currentStep or nextStep function');
+  if (!currentStep) {
+    console.error('❌ currentStep not found:', currentStepId);
+    console.log('🔍 Available steps:', Object.keys(chatFlow));
+    return null;
+  }
+
+  if (!currentStep.nextStep) {
+    console.error('❌ nextStep function not found for:', currentStepId);
     return null;
   }
 
   const nextStepId = currentStep.nextStep(userInput);
   console.log('🔍 nextStepId calculated:', nextStepId);
 
-  const nextStep = chatFlow[nextStepId];
-  console.log('🔍 nextStep object found:', !!nextStep);
+  if (!nextStepId) {
+    console.error('❌ nextStepId is null or undefined');
+    return null;
+  }
 
-  return nextStep || null;
+  const nextStep = chatFlow[nextStepId];
+
+  if (!nextStep) {
+    console.error('❌ nextStep not found for ID:', nextStepId);
+    console.log('🔍 Available steps:', Object.keys(chatFlow));
+    return null;
+  }
+
+  console.log('✅ Successfully found next step:', nextStepId);
+  return nextStep;
 };
 
 export const validateInput = (stepId: string, value: string): boolean => {

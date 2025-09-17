@@ -83,21 +83,32 @@ export const questionFlow = {
 
 // 다음 스텝 결정 로직
 export const getNextStepId = (currentStep: string, userInput: string): string => {
-  console.log('🎯 getNextStepId DEBUG:', { currentStep, userInput });
+  console.log('🎯 getNextStepId DEBUG:', { currentStep, userInput, flowKeys: Object.keys(questionFlow) });
 
-  if (currentStep === 'welcome' && userInput === '기타 문의') {
-    console.log('🎯 Special case: welcome -> customService');
-    return 'customService';
+  if (currentStep === 'welcome') {
+    if (userInput === '기타 문의') {
+      console.log('🎯 Special case: welcome -> customService');
+      return 'customService';
+    } else {
+      console.log('🎯 Normal case: welcome -> budget');
+      return 'budget';
+    }
   }
 
   const possibleNextSteps = questionFlow[currentStep as keyof typeof questionFlow];
-  console.log('🎯 possibleNextSteps:', possibleNextSteps);
+  console.log('🎯 possibleNextSteps for', currentStep, ':', possibleNextSteps);
 
-  if (possibleNextSteps && possibleNextSteps.length > 0) {
-    console.log('🎯 Returning first step:', possibleNextSteps[0]);
-    return possibleNextSteps[0];
+  if (!possibleNextSteps) {
+    console.warn('⚠️ Step not found in flow:', currentStep, '. Returning complete.');
+    return 'complete';
   }
 
-  console.log('🎯 No next steps, returning complete');
+  if (possibleNextSteps.length > 0) {
+    const nextStep = possibleNextSteps[0];
+    console.log('🎯 Returning next step:', nextStep);
+    return nextStep;
+  }
+
+  console.log('🎯 No next steps defined, returning complete');
   return 'complete';
 };
