@@ -41,7 +41,7 @@ if (welcomeStep) {
 
   console.log('\n  각 옵션의 다음 단계:');
   testOptions.forEach(option => {
-    const nextStep = welcomeStep.nextStep ? welcomeStep.nextStep(option) : 'unknown';
+    const nextStep = welcomeStep?.nextStep ? welcomeStep.nextStep(option) : 'unknown';
     const isCorrect = nextStep === 'budget';
     console.log(`    "${option}" → ${nextStep} ${isCorrect ? '✅' : '❌'}`);
   });

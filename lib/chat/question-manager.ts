@@ -69,19 +69,29 @@ export class LocalStorageQuestionManager implements QuestionManager {
   }
 
   getFlow(): Record<string, ChatStep> {
-    const questions = this.getQuestions();
+    const allQuestions = this.getQuestions();
     const flow: Record<string, ChatStep> = {};
 
     // 유효한 step ID 수집
-    const validStepIds = new Set(questions.map(q => q.step));
+    const validStepIds = new Set(allQuestions.map(q => q.step));
     validStepIds.add('phoneVerification');
     validStepIds.add('complete');
     validStepIds.add('customService');
 
-    questions
+    // 활성 질문만 필터링 (단, 모든 질문에 대한 flow는 생성)
+    const activeQuestions = allQuestions
+      .filter(q => q.is_active !== false)
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+    // 모든 질문에 대해 flow 생성
+    allQuestions
       .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
       .forEach((question, index) => {
-        const nextQuestion = questions[index + 1];
+        // 다음 활성 질문 찾기
+        const currentActiveIndex = activeQuestions.findIndex(q => q.step === question.step);
+        const nextActiveQuestion = currentActiveIndex !== -1 && currentActiveIndex < activeQuestions.length - 1
+          ? activeQuestions[currentActiveIndex + 1]
+          : null;
 
         flow[question.step] = {
           id: question.step,
@@ -90,7 +100,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
           placeholder: question.placeholder,
           options: question.options,
           validation: this.getValidation(question),
-          nextStep: this.createNextStepFunction(question, nextQuestion, validStepIds)
+          nextStep: this.createNextStepFunction(question, nextActiveQuestion || undefined, validStepIds)
         };
       });
 
@@ -172,21 +182,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
     validStepIds?: Set<string>
   ): (value?: string) => string {
     return (value?: string) => {
-      // 모든 welcome 선택지가 동일한 플로우를 따르도록 수정
-      // '기타 문의'를 선택해도 바로 budget으로 이동
-
-      // customService 처리 (비활성화됨)
-      if (question.step === 'customService') {
-        // customService가 활성화된 경우에만 처리 (현재는 비활성)
-        if (validStepIds?.has('budget')) {
-          return 'budget';
-        }
-        if (nextQuestion) {
-          return nextQuestion.step;
-        }
-        return 'name';
-      }
-
+      // 특수 단계 처리
       if (question.step === 'phone') {
         return 'phoneVerification';
       }
@@ -195,23 +191,39 @@ export class LocalStorageQuestionManager implements QuestionManager {
         return 'complete';
       }
 
-      // 명시적 next_step이 있고 유효한 경우
+      // welcome 단계에서 customService가 비활성화된 경우 처리
+      if (question.step === 'welcome') {
+        // customService가 비활성화되었으므로, 모든 선택지가 다음 질문으로 이동
+        if (nextQuestion) {
+          return nextQuestion.step;
+        }
+      }
+
+      // 조건부 분기 처리 (customService가 활성화된 경우에만)
+      if (question.step === 'welcome' && value) {
+        const customServiceQuestion = this.getQuestions().find(q => q.step === 'customService');
+        if (customServiceQuestion && customServiceQuestion.is_active !== false) {
+          // customService가 활성화된 경우에만 분기 처리
+          if (value === '기타 문의') {
+            return 'customService';
+          }
+        }
+      }
+
+      // 동적 질문 편집을 위해 순서에 따른 다음 질문을 우선 사용
+      // nextQuestion은 order_index에 따른 다음 질문임
+      if (nextQuestion) {
+        return nextQuestion.step;
+      }
+
+      // 다음 질문이 없으면 명시적 next_step 확인 (호환성을 위해)
       if (question.next_step) {
         // next_step이 유효한지 확인
         if (validStepIds && !validStepIds.has(question.next_step) && question.next_step !== 'complete') {
-          console.warn(`Invalid next_step "${question.next_step}" for question "${question.step}". Using fallback.`);
-          // 다음 질문으로 폴백
-          if (nextQuestion) {
-            return nextQuestion.step;
-          }
+          console.warn(`Invalid next_step "${question.next_step}" for question "${question.step}". Falling back to complete.`);
           return 'complete';
         }
         return question.next_step;
-      }
-
-      // 다음 질문으로
-      if (nextQuestion) {
-        return nextQuestion.step;
       }
 
       // 기본값
@@ -226,7 +238,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
         type: 'select',
         question: '안녕하세요! 88입니다. 어떤 서비스를 찾고 계신가요?',
         options: ['창업 컨설팅', '경영 전략 수립', '마케팅 전략', '투자 유치 지원', '기타 문의'],
-        next_step: 'budget',
+        next_step: '',  // 동적으로 다음 질문을 찾음
         is_active: true,
         order_index: 0,
         placeholder: ''
