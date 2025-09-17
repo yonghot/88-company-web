@@ -220,12 +220,15 @@ export function SimpleChatInterface() {
     const questions = questionManager.getQuestions();
     const activeQuestions = questions.filter(q => q.is_active !== false);
 
-    // phoneVerification은 자동으로 추가되므로 +1
-    const hasPhoneStep = activeQuestions.some(q => q.step === 'phone');
-    const totalSteps = activeQuestions.length + (hasPhoneStep ? 1 : 0);
+    // customService는 조건부이므로 제외
+    const mainQuestions = activeQuestions.filter(q => q.step !== 'customService');
 
-    // 현재 단계의 인덱스 찾기
-    const currentQuestionIndex = activeQuestions.findIndex(q => q.step === chatState.currentStep);
+    // phoneVerification은 자동으로 추가되므로 +1
+    const hasPhoneStep = mainQuestions.some(q => q.step === 'phone');
+    const totalSteps = mainQuestions.length + (hasPhoneStep ? 1 : 0);
+
+    // 현재 단계의 인덱스 찾기 (customService 제외된 목록에서)
+    const currentQuestionIndex = mainQuestions.findIndex(q => q.step === chatState.currentStep);
 
     // 특수 단계 처리
     if (chatState.currentStep === 'phoneVerification') {
@@ -236,15 +239,15 @@ export function SimpleChatInterface() {
       return totalSteps; // 마지막
     }
 
+    // customService는 진행도에 포함하지 않지만 현재 단계일 때는 이전 단계 유지
+    if (chatState.currentStep === 'customService') {
+      // welcome과 같은 진행도로 처리 (옵션 선택 중)
+      return 1;
+    }
+
     // 일반 질문의 경우
     if (currentQuestionIndex !== -1) {
       return currentQuestionIndex + 1;
-    }
-
-    // customService 같은 조건부 단계 처리
-    if (chatState.currentStep === 'customService') {
-      // welcome 다음 단계로 처리
-      return 1;
     }
 
     // 사용자 메시지 수로 폴백
@@ -256,9 +259,12 @@ export function SimpleChatInterface() {
     const questions = questionManager.getQuestions();
     const activeQuestions = questions.filter(q => q.is_active !== false);
 
+    // customService는 조건부이므로 제외 (선택적)
+    const mainQuestions = activeQuestions.filter(q => q.step !== 'customService');
+
     // phoneVerification은 자동으로 추가되므로 +1
-    const hasPhoneStep = activeQuestions.some(q => q.step === 'phone');
-    return activeQuestions.length + (hasPhoneStep ? 1 : 0);
+    const hasPhoneStep = mainQuestions.some(q => q.step === 'phone');
+    return mainQuestions.length + (hasPhoneStep ? 1 : 0);
   };
 
   const currentStep = flow[chatState.currentStep];
