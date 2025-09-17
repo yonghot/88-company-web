@@ -38,6 +38,33 @@ export function DynamicChatInterface() {
 
   useEffect(() => {
     loadDynamicFlow();
+
+    // LocalStorage 변경 감지를 위한 이벤트 리스너
+    const handleStorageChange = (e: StorageEvent) => {
+      // 질문이 업데이트된 경우 다시 로드
+      if (e.key === 'questionsUpdated' || e.key === 'chatQuestions') {
+        // 캐시 무효화 및 재로드
+        const flowService = getDynamicChatFlow();
+        flowService.invalidateCache();
+        loadDynamicFlow();
+      }
+    };
+
+    // 같은 창 내에서의 LocalStorage 변경 감지를 위한 커스텀 이벤트
+    const handleCustomStorageChange = () => {
+      const flowService = getDynamicChatFlow();
+      flowService.invalidateCache();
+      loadDynamicFlow();
+    };
+
+    // 이벤트 리스너 등록
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('questionsUpdated', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('questionsUpdated', handleCustomStorageChange);
+    };
   }, []);
 
   const loadDynamicFlow = async () => {

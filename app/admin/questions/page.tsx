@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChatQuestion } from '@/lib/chat/dynamic-types';
 import { Plus, Edit2, Trash2, Save, X, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
 import { ClientStorage } from '@/lib/storage/client-storage';
+import { getDynamicChatFlow } from '@/lib/chat/dynamic-flow';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -68,6 +69,13 @@ export default function QuestionsManagement() {
       // localStorage에 직접 저장
       const updated = ClientStorage.updateQuestion(editForm.step, editForm);
       if (updated) {
+        // 동적 플로우 캐시 무효화
+        const flowService = getDynamicChatFlow();
+        flowService.invalidateCache();
+
+        // 다른 탭/창에 변경 사항 알림
+        window.localStorage.setItem('questionsUpdated', Date.now().toString());
+
         alert('질문이 수정되었습니다.');
         setEditingId(null);
         loadQuestions();
@@ -86,6 +94,14 @@ export default function QuestionsManagement() {
     try {
       // localStorage에서 직접 삭제
       ClientStorage.deleteQuestion(step);
+
+      // 동적 플로우 캐시 무효화
+      const flowService = getDynamicChatFlow();
+      flowService.invalidateCache();
+
+      // 다른 탭/창에 변경 사항 알림
+      window.localStorage.setItem('questionsUpdated', Date.now().toString());
+
       alert('질문이 삭제되었습니다.');
       loadQuestions();
     } catch (error) {
@@ -109,6 +125,14 @@ export default function QuestionsManagement() {
       } as ChatQuestion;
 
       ClientStorage.addQuestion(questionToAdd);
+
+      // 동적 플로우 캐시 무효화
+      const flowService = getDynamicChatFlow();
+      flowService.invalidateCache();
+
+      // 다른 탭/창에 변경 사항 알림
+      window.localStorage.setItem('questionsUpdated', Date.now().toString());
+
       alert('새 질문이 추가되었습니다.');
       setIsCreating(false);
       setNewQuestion({
@@ -151,6 +175,14 @@ export default function QuestionsManagement() {
     try {
       // localStorage에 직접 순서 변경 저장
       ClientStorage.reorderQuestions(steps);
+
+      // 동적 플로우 캐시 무효화
+      const flowService = getDynamicChatFlow();
+      flowService.invalidateCache();
+
+      // 다른 탭/창에 변경 사항 알림
+      window.localStorage.setItem('questionsUpdated', Date.now().toString());
+
       loadQuestions();
     } catch (error) {
       console.error('Failed to reorder:', error);
