@@ -21,6 +21,7 @@ export function RealTimeChatInterface() {
 
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [showVerification, setShowVerification] = useState(false);
   const [chatFlow, setChatFlow] = useState<any>({});
   const [totalSteps, setTotalSteps] = useState(0);
   const [shouldReset, setShouldReset] = useState(false);
@@ -181,9 +182,14 @@ export function RealTimeChatInterface() {
       }));
 
       if (nextStepId === 'phone') {
-        setPhoneNumber('');
+        setShowVerification(false);
       }
     }
+  };
+
+  const handlePhoneSubmit = (phone: string) => {
+    setPhoneNumber(phone);
+    setShowVerification(true);
   };
 
   const handleVerificationComplete = async (code: string) => {
@@ -319,7 +325,13 @@ export function RealTimeChatInterface() {
                 onSubmit={handleUserInput}
               />
             )}
-            {chatState.currentStep === 'phone' && (
+            {chatState.currentStep === 'phone' && !showVerification && (
+              <ChatInput
+                currentStep={currentStep}
+                onSubmit={handlePhoneSubmit}
+              />
+            )}
+            {chatState.currentStep === 'phone' && showVerification && phoneNumber && (
               <VerificationInput
                 phoneNumber={phoneNumber}
                 onVerify={handleVerificationComplete}
