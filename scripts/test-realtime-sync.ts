@@ -37,7 +37,7 @@ async function testRealTimeSync() {
     stepSequence.push(currentStep);
 
     const flowStep = flow[currentStep];
-    if (!flowStep) break;
+    if (!flowStep || !flowStep.nextStep) break;
 
     const nextStep = flowStep.nextStep();
     if (nextStep === 'complete' || nextStep === currentStep) break;

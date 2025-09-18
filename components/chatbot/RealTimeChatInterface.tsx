@@ -186,22 +186,13 @@ export function RealTimeChatInterface() {
     }
   };
 
-  const handleVerificationComplete = async (verified: boolean, data: any) => {
-    if (!verified) {
-      const errorMessage: Message = {
-        id: uuidv4(),
-        type: 'bot',
-        content: '인증에 실패했습니다. 다시 시도해주세요.',
-        timestamp: new Date()
-      };
-      setChatState(prev => ({
-        ...prev,
-        messages: [...prev.messages, errorMessage]
-      }));
-      return;
-    }
+  const handleVerificationComplete = async (code: string) => {
+    const updatedLeadData: LeadData = {
+      ...chatState.leadData,
+      phone: phoneNumber,
+      verified: true
+    };
 
-    const updatedLeadData = { ...chatState.leadData, phone: data.phoneNumber };
     await saveLeadData(updatedLeadData);
   };
 
