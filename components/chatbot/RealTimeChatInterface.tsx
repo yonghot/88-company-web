@@ -187,6 +187,7 @@ export function RealTimeChatInterface() {
   };
 
   const handleVerificationComplete = async (code: string) => {
+    // 인증 완료 처리
     const updatedLeadData: LeadData = {
       ...chatState.leadData,
       phone: phoneNumber,
