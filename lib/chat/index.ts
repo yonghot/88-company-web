@@ -2,3 +2,4 @@
 export * from './types';
 export * from './questions';
 export * from './flow';
+export { DynamicQuestionServiceImpl as DynamicQuestionService } from './dynamic-question-service';

@@ -8,7 +8,7 @@ export async function testVerification() {
   console.log(`Phone: ${testPhone}`);
 
   console.log('\n1. Sending verification code...');
-  const sendResult = await service.sendCode(testPhone);
+  const sendResult = await service.sendVerificationCode(testPhone);
 
   if (!sendResult.success) {
     throw new Error(`Failed to send code: ${sendResult.error}`);

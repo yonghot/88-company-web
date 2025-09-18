@@ -21,7 +21,7 @@ class QuestionCacheImpl implements QuestionCache {
 }
 
 export class DynamicQuestionServiceImpl implements DynamicQuestionService {
-  private supabase: ReturnType<typeof createClient> | null;
+  private supabase: any | null;
   private cache: QuestionCache;
   private useStaticFallback: boolean = false;
 
@@ -206,7 +206,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
     const { data, error } = await this.supabase
       .from('chat_questions')
-      .insert([question])
+      .insert([question] as any)
       .select()
       .single();
 
@@ -249,7 +249,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
     const { data, error } = await this.supabase
       .from('chat_questions')
-      .update(updates)
+      .update(updates as any)
       .eq('step', step)
       .select()
       .single();
@@ -339,7 +339,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     for (const update of updates) {
       await this.supabase
         .from('chat_questions')
-        .update({ order_index: update.order_index })
+        .update({ order_index: update.order_index } as any)
         .eq('step', update.step);
     }
 
