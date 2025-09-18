@@ -13,29 +13,41 @@ export class SMSService {
   private retryDelay = 1000; // 1초
 
   constructor() {
-    // NHN Cloud 설정 검증
-    const appKey = process.env.NHN_APP_KEY;
-    const secretKey = process.env.NHN_SECRET_KEY;
-    const sendNo = process.env.NHN_SEND_NO;
+    const provider = process.env.SMS_PROVIDER || 'demo';
 
-    if (!appKey || !secretKey || !sendNo) {
-      throw new Error(
-        'NHN Cloud SMS 설정이 필요합니다. 환경 변수를 확인하세요:\n' +
-        '- NHN_APP_KEY\n' +
-        '- NHN_SECRET_KEY\n' +
-        '- NHN_SEND_NO'
-      );
+    // Demo 모드인 경우 실제 SMS 프로바이더 초기화 생략
+    if (provider === 'demo') {
+      logger.info('📱 Demo SMS 모드로 실행 중');
+      // Demo 모드에서는 provider를 null로 설정하고 sendSMS 메소드에서 처리
+      this.provider = null as any;
+      return;
     }
 
-    // NHN Cloud 프로바이더 초기화
-    this.provider = new NHNCloudSMSProvider({
-      appKey,
-      secretKey,
-      sendNo,
-      projectId: process.env.NHN_PROJECT_ID
-    });
+    // NHN Cloud 프로바이더 사용
+    if (provider === 'nhncloud') {
+      const appKey = process.env.NHN_APP_KEY;
+      const secretKey = process.env.NHN_SECRET_KEY;
+      const sendNo = process.env.NHN_SEND_NO;
 
-    logger.info('📱 NHN Cloud SMS 서비스 초기화 완료');
+      if (!appKey || !secretKey || !sendNo) {
+        logger.warn('NHN Cloud SMS 설정이 없습니다. Demo 모드로 전환합니다.');
+        this.provider = null as any;
+        return;
+      }
+
+      // NHN Cloud 프로바이더 초기화
+      this.provider = new NHNCloudSMSProvider({
+        appKey,
+        secretKey,
+        sendNo,
+        projectId: process.env.NHN_PROJECT_ID
+      });
+
+      logger.info('📱 NHN Cloud SMS 서비스 초기화 완료');
+    } else {
+      logger.warn(`지원하지 않는 SMS 프로바이더: ${provider}. Demo 모드로 전환합니다.`);
+      this.provider = null as any;
+    }
   }
 
   /**
@@ -55,6 +67,23 @@ export class SMSService {
     // 전화번호 유효성 검사
     if (!this.isValidPhoneNumber(phone)) {
       throw new Error('유효하지 않은 전화번호 형식입니다');
+    }
+
+    // Demo 모드 처리
+    if (!this.provider) {
+      logger.info(`📱 [Demo Mode] SMS 발송 시뮬레이션: ${phone}`);
+      logger.info(`📱 [Demo Mode] 메시지: ${message}`);
+      return {
+        success: true,
+        messageId: `demo-${Date.now()}`,
+        provider: 'demo',
+        timestamp: new Date(),
+        details: {
+          mode: 'Demo Mode',
+          phone,
+          message
+        }
+      };
     }
 
     let lastError: any;

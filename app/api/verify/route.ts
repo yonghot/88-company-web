@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server';
 import { VerificationService } from '@/lib/sms/verification-service';
 import { headers } from 'next/headers';
 
-// 통합 인증 서비스 인스턴스
-const verificationService = VerificationService.getInstance();
+// 통합 인증 서비스 인스턴스 - Lazy initialization
+let verificationService: VerificationService | null = null;
+
+function getVerificationService(): VerificationService {
+  if (!verificationService) {
+    verificationService = VerificationService.getInstance();
+  }
+  return verificationService;
+}
 
 /**
  * 관리자 인증 확인
@@ -100,7 +107,7 @@ export async function POST(request: Request) {
 
     // 인증번호 발송
     if (action === 'send') {
-      const result = await verificationService.sendVerificationCode(phone);
+      const result = await getVerificationService().sendVerificationCode(phone);
 
       if (!result.success) {
         // 프로덕션에서는 구체적인 오류 숨김
@@ -148,7 +155,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const result = await verificationService.verifyCode(phone, code);
+      const result = await getVerificationService().verifyCode(phone, code);
 
       if (!result.success) {
         // 프로덕션에서는 구체적인 오류 숨김
@@ -211,7 +218,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const stats = verificationService.getStats();
+    const stats = getVerificationService().getStats();
 
     // 프로덕션에서는 민감한 정보 필터링
     if (process.env.NODE_ENV === 'production') {
