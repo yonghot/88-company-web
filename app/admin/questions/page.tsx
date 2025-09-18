@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChatQuestion } from '@/lib/chat/dynamic-types';
-import { questionManager } from '@/lib/chat/question-manager';
+import { realTimeQuestionService } from '@/lib/chat/real-time-question-service';
 import { Plus, Edit2, Trash2, Save, X, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function QuestionsManagement() {
@@ -13,29 +13,24 @@ export default function QuestionsManagement() {
   useEffect(() => {
     loadQuestions();
 
-    const handleUpdate = () => {
+    // RealTimeQuestionService의 subscription 사용
+    const unsubscribe = realTimeQuestionService.subscribe(() => {
+      console.log('[Admin] Questions updated, reloading...');
       loadQuestions();
-    };
-
-    window.addEventListener('questionsUpdated', handleUpdate);
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'chat_questions') {
-        handleUpdate();
-      }
     });
 
     return () => {
-      window.removeEventListener('questionsUpdated', handleUpdate);
+      unsubscribe();
     };
   }, []);
 
   const loadQuestions = () => {
-    const loadedQuestions = questionManager.getQuestions();
+    const loadedQuestions = realTimeQuestionService.getAllQuestions();
     setQuestions(loadedQuestions);
   };
 
   const saveQuestions = () => {
-    questionManager.saveQuestions(questions);
+    realTimeQuestionService.saveQuestions(questions);
     alert('질문이 저장되었습니다.');
   };
 
@@ -52,7 +47,7 @@ export default function QuestionsManagement() {
     );
 
     setQuestions(updatedQuestions);
-    questionManager.saveQuestions(updatedQuestions);
+    realTimeQuestionService.saveQuestions(updatedQuestions);
     setEditingId(null);
     alert('질문이 수정되었습니다.');
   };
@@ -88,7 +83,7 @@ export default function QuestionsManagement() {
       .map((q, i) => ({ ...q, order_index: i }));
 
     setQuestions(updatedQuestions);
-    questionManager.saveQuestions(updatedQuestions);
+    realTimeQuestionService.saveQuestions(updatedQuestions);
     alert('질문이 삭제되었습니다.');
   };
 
@@ -104,7 +99,7 @@ export default function QuestionsManagement() {
     });
 
     setQuestions(newQuestions);
-    questionManager.saveQuestions(newQuestions);
+    realTimeQuestionService.saveQuestions(newQuestions);
   };
 
   const handleMoveDown = (index: number) => {
@@ -119,7 +114,7 @@ export default function QuestionsManagement() {
     });
 
     setQuestions(newQuestions);
-    questionManager.saveQuestions(newQuestions);
+    realTimeQuestionService.saveQuestions(newQuestions);
   };
 
   const handleAddQuestion = () => {
@@ -135,7 +130,7 @@ export default function QuestionsManagement() {
 
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
-    questionManager.saveQuestions(updatedQuestions);
+    realTimeQuestionService.saveQuestions(updatedQuestions);
   };
 
   return (
@@ -277,10 +272,10 @@ export default function QuestionsManagement() {
           <div className="text-sm text-gray-600 dark:text-gray-400">
             <p className="mb-2">💡 팁:</p>
             <ul className="space-y-1 list-disc list-inside">
-              <li>질문을 수정하면 채팅봇에 즉시 반영됩니다</li>
+              <li>질문을 수정하면 채팅봇에 실시간으로 자동 반영됩니다 (새로고침 불필요)</li>
               <li>순서 변경은 위/아래 화살표를 사용하세요</li>
               <li>필수 단계(phoneVerification, complete)는 자동으로 추가됩니다</li>
-              <li>특수 케이스: welcome에서 "기타 문의" 선택 시 customService로 이동</li>
+              <li>질문 개수, 순서, 내용이 모두 실시간으로 챗봇에 동기화됩니다</li>
             </ul>
           </div>
         </div>

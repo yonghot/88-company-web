@@ -1,5 +1,5 @@
-import { SimpleChatInterface } from '@/components/chatbot/SimpleChatInterface';
+import { RealTimeChatInterface } from '@/components/chatbot/RealTimeChatInterface';
 
 export default function Home() {
-  return <SimpleChatInterface />;
+  return <RealTimeChatInterface />;
 }

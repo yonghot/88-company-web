@@ -13,8 +13,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
 
-const TOTAL_STEPS = 7;
-
 export function DynamicChatInterface() {
   const [chatState, setChatState] = useState<ChatState>({
     currentStep: 'welcome',
@@ -27,6 +25,7 @@ export function DynamicChatInterface() {
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [dynamicFlow, setDynamicFlow] = useState<any>(null);
   const [isLoadingFlow, setIsLoadingFlow] = useState(true);
+  const [totalSteps, setTotalSteps] = useState(7); // 동적으로 계산될 전체 단계 수
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -76,6 +75,17 @@ export function DynamicChatInterface() {
       const startStep = await flowService.getStartStep();
 
       setDynamicFlow(flow);
+
+      // 동적으로 전체 단계 수 계산
+      const activeSteps = Object.keys(flow).filter(key => {
+        // complete 단계는 제외하고 실제 질문 단계만 카운트
+        return key !== 'complete' && key !== 'phoneVerification';
+      });
+
+      // phoneVerification은 phone 단계와 같이 계산되므로 +1 추가
+      const calculatedSteps = activeSteps.length + 1; // +1 for verification
+      setTotalSteps(calculatedSteps);
+
       setChatState(prev => ({
         ...prev,
         currentStep: startStep
@@ -96,6 +106,12 @@ export function DynamicChatInterface() {
     } catch (error) {
       // Using static flow when dynamic flow is not available (expected without Supabase)
       setDynamicFlow(staticFlow);
+
+      // 정적 플로우의 단계 수 계산
+      const staticSteps = Object.keys(staticFlow).filter(key => {
+        return key !== 'complete' && key !== 'phoneVerification';
+      });
+      setTotalSteps(staticSteps.length + 1);
 
       const welcomeMessage: Message = {
         id: uuidv4(),
@@ -301,33 +317,45 @@ export function DynamicChatInterface() {
   };
 
   const getProgressSteps = () => {
-    // Count actual user responses to determine progress
-    const userMessageCount = chatState.messages.filter(msg => msg.type === 'user').length;
+    // 완료 상태면 전체 단계
+    if (chatState.isCompleted) {
+      return totalSteps;
+    }
 
-    // Map current step to expected progress stage
-    const stepProgressMap: Record<string, number> = {
-      'welcome': 0,        // Before first answer = 0
-      'customService': 1,  // After choosing "기타 문의"
-      'budget': 1,         // After first answer (service selection)
-      'timeline': 2,       // After budget selection
-      'details': 3,        // After timeline selection
-      'name': 4,           // After details input
-      'phone': 5,          // After name input
-      'phoneVerification': 6, // During phone verification
-      'complete': 7        // Completed
-    };
+    const flow = getCurrentFlow();
+    if (!flow) return 0;
 
-    // If we're in welcome state with no user messages, it's step 0
-    if (chatState.currentStep === 'welcome' && userMessageCount === 0) {
+    // 모든 질문 단계를 order_index 순으로 정렬
+    const allSteps = Object.keys(flow)
+      .filter(key => key !== 'complete' && key !== 'phoneVerification')
+      .sort((a, b) => {
+        const aStep = flow[a];
+        const bStep = flow[b];
+        // order_index가 있으면 사용, 없으면 기본 순서
+        const aOrder = (aStep as any)?.order_index ?? 999;
+        const bOrder = (bStep as any)?.order_index ?? 999;
+        return aOrder - bOrder;
+      });
+
+    // 현재 단계의 인덱스 찾기
+    let currentStepIndex = allSteps.indexOf(chatState.currentStep);
+
+    // phoneVerification 상태일 때는 phone 단계 + 0.5로 계산
+    if (chatState.currentStep === 'phoneVerification') {
+      const phoneIndex = allSteps.indexOf('phone');
+      currentStepIndex = phoneIndex >= 0 ? phoneIndex : allSteps.length - 1;
+      // 검증 중일 때는 +0.5 진행률
+      return Math.min(currentStepIndex + 1.5, totalSteps);
+    }
+
+    // welcome 상태에서 아직 답변이 없으면 0
+    if (chatState.currentStep === 'welcome' &&
+        chatState.messages.filter(msg => msg.type === 'user').length === 0) {
       return 0;
     }
 
-    // Use the step mapping, or count user messages as fallback
-    const mappedProgress = stepProgressMap[chatState.currentStep];
-    const calculatedProgress = mappedProgress !== undefined ? mappedProgress : userMessageCount;
-
-
-    return Math.min(calculatedProgress, TOTAL_STEPS);
+    // 현재 단계까지 완료한 단계 수 (1-based indexing)
+    return Math.min(currentStepIndex + 1, totalSteps);
   };
 
   if (isLoadingFlow) {
@@ -359,7 +387,7 @@ export function DynamicChatInterface() {
       {!chatState.isCompleted && (
         <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-2">
           <div className="max-w-4xl mx-auto">
-            <ProgressBar currentStep={getProgressSteps()} totalSteps={TOTAL_STEPS} />
+            <ProgressBar currentStep={getProgressSteps()} totalSteps={totalSteps} />
           </div>
         </div>
       )}

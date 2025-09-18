@@ -8,6 +8,7 @@ export class DynamicChatFlow {
   private questionsMap: Map<string, ChatQuestion> | null = null;
   private isLoading: boolean = false;
   private loadPromise: Promise<void> | null = null;
+  private activeStepsCount: number = 0;
 
   private async ensureLoaded(): Promise<void> {
     if (this.questionsMap) return;
@@ -33,6 +34,16 @@ export class DynamicChatFlow {
     }
   }
 
+  async getActiveStepsCount(): Promise<number> {
+    const flow = await this.getFlow();
+    // complete와 phoneVerification을 제외한 실제 질문 단계만 카운트
+    const activeSteps = Object.keys(flow).filter(key => {
+      return key !== 'complete' && key !== 'phoneVerification';
+    });
+    // phoneVerification은 phone과 함께 계산되므로 +1
+    return activeSteps.length + 1;
+  }
+
   async getFlow(): Promise<Record<string, ChatStep>> {
     await this.ensureLoaded();
 
@@ -45,9 +56,12 @@ export class DynamicChatFlow {
     // 동적 질문을 ChatStep 형식으로 변환
     const dynamicFlow: Record<string, ChatStep> = {};
 
-    // 질문들을 order_index 순으로 정렬
+    // 활성 질문들만 필터링하고 order_index 순으로 정렬
     const sortedQuestions = Array.from(this.questionsMap.values())
+      .filter(q => q.is_active === true) // 활성 질문만 필터링
       .sort((a, b) => a.order_index - b.order_index);
+
+    logger.debug(`Active questions count: ${sortedQuestions.length}`);
 
     sortedQuestions.forEach((question, index) => {
       const step = this.convertQuestionToStep(question);
@@ -200,7 +214,16 @@ export class DynamicChatFlow {
   }
 
   async getStartStep(): Promise<string> {
-    return 'welcome';
+    const flow = await this.getFlow();
+    // 활성 질문 중 첫 번째 단계 찾기
+    const activeSteps = Object.keys(flow)
+      .filter(key => key !== 'complete' && key !== 'phoneVerification')
+      .sort((a, b) => {
+        const aOrder = (flow[a] as any)?.order_index ?? 999;
+        const bOrder = (flow[b] as any)?.order_index ?? 999;
+        return aOrder - bOrder;
+      });
+    return activeSteps[0] || 'welcome';
   }
 
   async getQuestion(step: string): Promise<ChatQuestion | null> {
