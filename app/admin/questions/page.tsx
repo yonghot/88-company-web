@@ -29,10 +29,6 @@ export default function QuestionsManagement() {
     setQuestions(loadedQuestions);
   };
 
-  const saveQuestions = () => {
-    realTimeQuestionService.saveQuestions(questions);
-    alert('질문이 저장되었습니다.');
-  };
 
   const handleEdit = (question: ChatQuestion) => {
     setEditingId(question.step);
@@ -167,7 +163,7 @@ export default function QuestionsManagement() {
 
                     <select
                       value={editForm.type || 'text'}
-                      onChange={(e) => setEditForm({ ...editForm, type: e.target.value as any })}
+                      onChange={(e) => setEditForm({ ...editForm, type: e.target.value as ChatQuestion['type'] })}
                       className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
                     >
                       <option value="text">텍스트</option>

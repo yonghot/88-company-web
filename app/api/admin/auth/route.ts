@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   try {
     const cookieStore = await cookies();
     cookieStore.delete('admin-auth');

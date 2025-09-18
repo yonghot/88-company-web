@@ -24,7 +24,7 @@ export interface ChatFlow {
   description?: string;
   start_step: string;
   is_active: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at?: string;
   updated_at?: string;
 }

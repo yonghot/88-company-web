@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { LeadData } from '@/lib/types';
 
 // Fallback to file system if Supabase is not configured
 import { writeFile, readFile, mkdir } from 'fs/promises';
@@ -33,7 +34,7 @@ async function getLeadsFromFile() {
   }
 }
 
-async function saveLeadsToFile(leads: any[]) {
+async function saveLeadsToFile(leads: LeadData[]) {
   await ensureDataDirectory();
   await writeFile(LEADS_FILE, JSON.stringify(leads, null, 2));
 }
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
       const leads = await getLeadsFromFile();
       
       // Check for duplicate phone number
-      const existingLead = leads.find((lead: any) => lead.id === phoneId);
+      const existingLead = leads.find((lead: LeadData) => lead.id === phoneId);
       if (existingLead) {
         // Update existing lead
         const updatedLead = {
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString()
         };
         
-        const updatedLeads = leads.map((lead: any) => 
+        const updatedLeads = leads.map((lead: LeadData) =>
           lead.id === phoneId ? updatedLead : lead
         );
         
@@ -211,7 +212,7 @@ export async function DELETE(request: NextRequest) {
     } else {
       // Fallback to file system
       const leads = await getLeadsFromFile();
-      const filteredLeads = leads.filter((lead: any) => lead.id !== id);
+      const filteredLeads = leads.filter((lead: LeadData) => lead.id !== id);
       
       if (leads.length === filteredLeads.length) {
         return NextResponse.json(

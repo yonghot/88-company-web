@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
-import { Message, ChatState, LeadData } from '@/lib/types';
+import { Message, ChatState, LeadData, ChatFlowMap, ChatStep } from '@/lib/types';
 import { realTimeQuestionService } from '@/lib/chat/real-time-question-service';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
@@ -22,7 +22,7 @@ export function RealTimeChatInterface() {
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [showVerification, setShowVerification] = useState(false);
-  const [chatFlow, setChatFlow] = useState<any>({});
+  const [chatFlow, setChatFlow] = useState<ChatFlowMap>({});
   const [totalSteps, setTotalSteps] = useState(0);
   const [shouldReset, setShouldReset] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,6 +34,26 @@ export function RealTimeChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [chatState.messages]);
+
+  const initializeChat = useCallback((flow: ChatFlowMap) => {
+    const firstStep = Object.keys(flow)[0];
+    if (!firstStep) return;
+
+    const welcomeStep = flow[firstStep];
+    const welcomeMessage: Message = {
+      id: uuidv4(),
+      type: 'bot',
+      content: welcomeStep.question,
+      timestamp: new Date()
+    };
+
+    setChatState({
+      currentStep: firstStep,
+      messages: [welcomeMessage],
+      leadData: {},
+      isCompleted: false
+    });
+  }, []);
 
   // 질문 로드 및 실시간 업데이트 설정
   useEffect(() => {
@@ -91,34 +111,10 @@ export function RealTimeChatInterface() {
   useEffect(() => {
     if (shouldReset && Object.keys(chatFlow).length > 0) {
       console.log('[RealTimeChatInterface] Resetting chat...');
-      resetChat();
+      initializeChat(chatFlow);
       setShouldReset(false);
     }
-  }, [shouldReset, chatFlow]);
-
-  const initializeChat = (flow: any) => {
-    const firstStep = Object.keys(flow)[0];
-    if (!firstStep) return;
-
-    const welcomeStep = flow[firstStep];
-    const welcomeMessage: Message = {
-      id: uuidv4(),
-      type: 'bot',
-      content: welcomeStep.question,
-      timestamp: new Date()
-    };
-
-    setChatState({
-      currentStep: firstStep,
-      messages: [welcomeMessage],
-      leadData: {},
-      isCompleted: false
-    });
-  };
-
-  const resetChat = () => {
-    initializeChat(chatFlow);
-  };
+  }, [shouldReset, chatFlow, initializeChat]);
 
   const handleUserInput = async (value: string) => {
     const currentStep = chatFlow[chatState.currentStep];
@@ -159,7 +155,9 @@ export function RealTimeChatInterface() {
     setIsTyping(false);
 
     // 다음 단계로 이동
-    const nextStepId = currentStep.nextStep ? currentStep.nextStep(value) : 'complete';
+    const nextStepId = typeof currentStep.nextStep === 'function'
+      ? currentStep.nextStep(value)
+      : currentStep.nextStep || 'complete';
 
     if (nextStepId === 'complete') {
       await saveLeadData({ ...chatState.leadData, [chatState.currentStep]: value });
@@ -192,7 +190,7 @@ export function RealTimeChatInterface() {
     setShowVerification(true);
   };
 
-  const handleVerificationComplete = async (code: string) => {
+  const handleVerificationComplete = async () => {
     // 인증 완료 처리
     const updatedLeadData: LeadData = {
       ...chatState.leadData,
@@ -256,13 +254,11 @@ export function RealTimeChatInterface() {
   const getProgressSteps = () => {
     if (chatState.isCompleted) return totalSteps;
 
-    const currentIndex = realTimeQuestionService.getStepIndex(chatState.currentStep);
-    if (currentIndex === -1) return 0;
+    // 사용자가 답변한 메시지 수를 진행도로 사용
+    const userMessageCount = chatState.messages.filter(m => m.type === 'user').length;
 
-    // 사용자 메시지가 없으면 0
-    if (chatState.messages.filter(m => m.type === 'user').length === 0) return 0;
-
-    return Math.min(currentIndex + 1, totalSteps);
+    // 답변한 수가 총 단계 수를 초과하지 않도록 제한
+    return Math.min(userMessageCount, totalSteps);
   };
 
   const currentStep = chatFlow[chatState.currentStep];
@@ -315,19 +311,19 @@ export function RealTimeChatInterface() {
           <div className="max-w-4xl mx-auto">
             {currentStep.inputType === 'select' && currentStep.options && (
               <QuickReplyOptions
-                options={currentStep.options}
+                options={currentStep.options as string[]}
                 onSelect={handleUserInput}
               />
             )}
             {currentStep.inputType !== 'select' && chatState.currentStep !== 'phone' && (
               <ChatInput
-                currentStep={currentStep}
+                currentStep={currentStep as ChatStep}
                 onSubmit={handleUserInput}
               />
             )}
             {chatState.currentStep === 'phone' && !showVerification && (
               <ChatInput
-                currentStep={currentStep}
+                currentStep={currentStep as ChatStep}
                 onSubmit={handlePhoneSubmit}
               />
             )}

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { ChatQuestion, ChatFlow, DynamicQuestionService, QuestionCache, CACHE_TTL } from './dynamic-types';
+import { ChatQuestion, ChatFlow, ChatQuestionHistory, DynamicQuestionService, QuestionCache, CACHE_TTL } from './dynamic-types';
 import { chatQuestions as staticQuestions } from './questions';
 import { ClientStorage } from '@/lib/storage/client-storage';
 
@@ -21,7 +21,7 @@ class QuestionCacheImpl implements QuestionCache {
 }
 
 export class DynamicQuestionServiceImpl implements DynamicQuestionService {
-  private supabase: any;
+  private supabase: ReturnType<typeof createClient> | null;
   private cache: QuestionCache;
   private useStaticFallback: boolean = false;
 
@@ -43,6 +43,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
       this.supabase = createClient(supabaseUrl, supabaseKey);
     } else {
       // Supabase not configured, using static questions (this is expected in development)
+      this.supabase = null;
       this.useStaticFallback = true;
     }
   }
@@ -129,7 +130,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
       }
 
       const questionsMap = new Map<string, ChatQuestion>();
-      data.forEach((q: any) => {
+      data.forEach((q: ChatQuestion) => {
         questionsMap.set(q.step, {
           ...q,
           options: q.options || undefined,
@@ -345,7 +346,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     this.cache.invalidate();
   }
 
-  async getQuestionHistory(questionId: string): Promise<any[]> {
+  async getQuestionHistory(questionId: string): Promise<ChatQuestionHistory[]> {
     if (this.useStaticFallback || !this.supabase) {
       return [];
     }

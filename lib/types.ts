@@ -6,3 +6,10 @@ export {
   type ChatState,
   type LeadData
 } from './chat/types';
+
+export {
+  type ChatFlowStep,
+  type ChatFlowMap,
+  type ErrorResponse,
+  type VerificationResult
+} from './chat/flow-types';

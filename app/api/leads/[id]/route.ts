@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { LeadData } from '@/lib/types';
 
 const LEADS_FILE = path.join(process.cwd(), 'data', 'leads.json');
 
@@ -8,7 +9,7 @@ async function ensureDataDirectory() {
   const dataDir = path.join(process.cwd(), 'data');
   try {
     await mkdir(dataDir, { recursive: true });
-  } catch (error) {
+  } catch {
     // Directory might already exist
   }
 }
@@ -17,13 +18,13 @@ async function getLeads() {
   try {
     const data = await readFile(LEADS_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     // File doesn't exist yet
     return [];
   }
 }
 
-async function saveLeads(leads: any[]) {
+async function saveLeads(leads: LeadData[]) {
   await ensureDataDirectory();
   await writeFile(LEADS_FILE, JSON.stringify(leads, null, 2));
 }
@@ -43,7 +44,7 @@ export async function DELETE(
     }
 
     const leads = await getLeads();
-    const filteredLeads = leads.filter((lead: any) => lead.id !== id);
+    const filteredLeads = leads.filter((lead: LeadData) => lead.id !== id);
     
     if (leads.length === filteredLeads.length) {
       return NextResponse.json(

@@ -1,5 +1,8 @@
 // Main library barrel exports
 
+// Re-export types for convenience
+export * from './types';
+
 // Re-export all modules
 export * from './chat';
 export * from './sms';

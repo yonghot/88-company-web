@@ -6,7 +6,7 @@ import { ChatInput } from './ChatInput';
 import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
-import { Message, ChatState, LeadData } from '@/lib/types';
+import { Message, ChatState, LeadData, ChatStep } from '@/lib/types';
 import { questionManager } from '@/lib/chat/question-manager';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
@@ -21,7 +21,7 @@ export function SimpleChatInterface() {
 
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [flow, setFlow] = useState<Record<string, any>>({});
+  const [flow, setFlow] = useState<Record<string, ChatStep>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -120,7 +120,7 @@ export function SimpleChatInterface() {
 
     const dataKey = stepMapping[chatState.currentStep];
     if (dataKey) {
-      (updatedLeadData as any)[dataKey] = value;
+      (updatedLeadData as Record<string, unknown>)[dataKey] = value;
     }
 
     if (chatState.currentStep === 'phone') {

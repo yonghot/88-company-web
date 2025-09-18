@@ -6,9 +6,9 @@ import { ChatInput } from './ChatInput';
 import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
-import { Message, ChatState, LeadData } from '@/lib/types';
+import { Message, ChatState, LeadData, ChatStep } from '@/lib/types';
 import { getDynamicChatFlow } from '@/lib/chat/dynamic-flow';
-import { chatFlow as staticFlow, validateInput } from '@/lib/chat/flow';
+import { chatFlow as staticFlow } from '@/lib/chat/flow';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
@@ -23,7 +23,7 @@ export function DynamicChatInterface() {
 
   const [isTyping, setIsTyping] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [dynamicFlow, setDynamicFlow] = useState<any>(null);
+  const [dynamicFlow, setDynamicFlow] = useState<Record<string, ChatStep> | null>(null);
   const [isLoadingFlow, setIsLoadingFlow] = useState(true);
   const [totalSteps, setTotalSteps] = useState(7); // 동적으로 계산될 전체 단계 수
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -103,7 +103,7 @@ export function DynamicChatInterface() {
         ...prev,
         messages: [welcomeMessage]
       }));
-    } catch (error) {
+    } catch {
       // Using static flow when dynamic flow is not available (expected without Supabase)
       setDynamicFlow(staticFlow);
 
@@ -193,7 +193,7 @@ export function DynamicChatInterface() {
 
     const dataKey = stepMapping[chatState.currentStep];
     if (dataKey) {
-      (updatedLeadData as any)[dataKey] = value;
+      (updatedLeadData as Record<string, unknown>)[dataKey] = value;
     }
 
     if (chatState.currentStep === 'phone') {
@@ -332,8 +332,8 @@ export function DynamicChatInterface() {
         const aStep = flow[a];
         const bStep = flow[b];
         // order_index가 있으면 사용, 없으면 기본 순서
-        const aOrder = (aStep as any)?.order_index ?? 999;
-        const bOrder = (bStep as any)?.order_index ?? 999;
+        const aOrder = (aStep as unknown as Record<string, unknown>)?.order_index as number ?? 999;
+        const bOrder = (bStep as unknown as Record<string, unknown>)?.order_index as number ?? 999;
         return aOrder - bOrder;
       });
 

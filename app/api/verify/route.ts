@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { VerificationService } from '@/lib/sms/verification-service';
 import { headers } from 'next/headers';
+import { VerificationResult } from '@/lib/chat/flow-types';
 
 // 통합 인증 서비스 인스턴스 - Lazy initialization
 let verificationService: VerificationService | null = null;
@@ -76,8 +77,6 @@ export async function POST(request: Request) {
 
     // 클라이언트 정보 수집 (로깅용)
     const clientIP = await getClientIP();
-    const headersList = await headers();
-    const userAgent = headersList.get('user-agent') || 'unknown';
 
     // 로깅 (프로덕션에서는 민감 정보 제외)
     if (process.env.NODE_ENV === 'production') {
@@ -125,7 +124,7 @@ export async function POST(request: Request) {
       }
 
       // 프로덕션에서는 절대 인증번호 반환하지 않음
-      const response: any = {
+      const response: VerificationResult = {
         success: true,
         message: result.message
       };

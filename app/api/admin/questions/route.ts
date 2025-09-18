@@ -11,7 +11,7 @@ async function checkAdminAuth(): Promise<boolean> {
   return authCookie?.value === adminPassword;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const service = getDynamicQuestionService();
     const questions = await service.loadQuestions();

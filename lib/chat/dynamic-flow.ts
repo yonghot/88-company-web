@@ -219,8 +219,8 @@ export class DynamicChatFlow {
     const activeSteps = Object.keys(flow)
       .filter(key => key !== 'complete' && key !== 'phoneVerification')
       .sort((a, b) => {
-        const aOrder = (flow[a] as any)?.order_index ?? 999;
-        const bOrder = (flow[b] as any)?.order_index ?? 999;
+        const aOrder = (flow[a] as unknown as Record<string, unknown>)?.order_index as number ?? 999;
+        const bOrder = (flow[b] as unknown as Record<string, unknown>)?.order_index as number ?? 999;
         return aOrder - bOrder;
       });
     return activeSteps[0] || 'welcome';

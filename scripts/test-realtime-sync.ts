@@ -1,8 +1,6 @@
-#!/usr/bin/env tsx
-
 import { realTimeQuestionService } from '../lib/chat/real-time-question-service';
 
-async function testRealTimeSync() {
+export async function testRealTimeSync() {
   console.log('🚀 실시간 동기화 테스트 시작\n');
 
   console.log('1️⃣ 현재 질문 상태 확인');
@@ -59,22 +57,24 @@ async function testRealTimeSync() {
   testQuestions[0].question = '테스트 업데이트: ' + new Date().toLocaleTimeString();
   realTimeQuestionService.saveQuestions(testQuestions);
 
-  setTimeout(() => {
-    console.log('   업데이트 전파 확인');
-    const updatedQuestions = realTimeQuestionService.getAllQuestions();
-    console.log(`   첫 번째 질문: ${updatedQuestions[0].question.substring(0, 50)}...`);
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-    console.log('\n7️⃣ 원래 상태로 복원');
-    realTimeQuestionService.saveQuestions(currentQuestions);
-    console.log('   복원 완료');
+  console.log('   업데이트 전파 확인');
+  const updatedQuestions = realTimeQuestionService.getAllQuestions();
+  console.log(`   첫 번째 질문: ${updatedQuestions[0].question.substring(0, 50)}...`);
 
-    console.log('\n✅ 테스트 완료!');
-    console.log('   실시간 동기화가 정상적으로 작동합니다.');
-    console.log('   관리자 페이지에서 질문을 수정하면 챗봇에 즉시 반영됩니다.');
+  console.log('\n7️⃣ 원래 상태로 복원');
+  realTimeQuestionService.saveQuestions(currentQuestions);
+  console.log('   복원 완료');
 
-    unsubscribe();
-    process.exit(0);
-  }, 100);
+  console.log('\n✅ 테스트 완료!');
+  console.log('   실시간 동기화가 정상적으로 작동합니다.');
+  console.log('   관리자 페이지에서 질문을 수정하면 챗봇에 즉시 반영됩니다.');
+
+  unsubscribe();
+  return { questionsCount: currentQuestions.length, flowSteps: flowSteps.length };
 }
 
-testRealTimeSync().catch(console.error);
+if (require.main === module) {
+  testRealTimeSync().catch(console.error);
+}

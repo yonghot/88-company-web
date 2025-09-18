@@ -9,9 +9,15 @@
     "lint": "eslint",
     "migrate": "node scripts/migrate-to-supabase.js",
     "db:setup": "echo 'Please run the SQL schema in Supabase dashboard'",
-    "test:sms": "tsx scripts/test-nhn-sms.ts",
-    "test:env": "tsx scripts/check-env.ts",
-    "test:verification": "tsx scripts/test-verification-flow.ts"
+    "test": "tsx scripts/test-runner.ts all",
+    "test:list": "tsx scripts/test-runner.ts list",
+    "test:sms": "tsx scripts/test-runner.ts test sms",
+    "test:env": "tsx scripts/test-runner.ts test environment",
+    "test:chat": "tsx scripts/test-runner.ts test chat",
+    "test:database": "tsx scripts/test-runner.ts test database",
+    "test:verification": "tsx scripts/test-runner.ts test verification",
+    "test:admin": "tsx scripts/test-runner.ts test admin",
+    "test:realtime": "tsx scripts/test-runner.ts test realtime"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -35,9 +41,11 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/commander": "^2.12.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "commander": "^14.0.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "tsx": "^4.20.5",

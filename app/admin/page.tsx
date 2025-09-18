@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { LeadData } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import { Download, RefreshCw, Search, Filter, Trash2, Eye } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function AdminPage() {
   const [leads, setLeads] = useState<LeadData[]>([]);
@@ -302,7 +301,7 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredLeads.map((lead: any) => (
+                  filteredLeads.map((lead: LeadData) => (
                     <tr key={lead.id} className="hover:bg-[#252B3B]/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-200">{lead.name}</div>
@@ -333,7 +332,7 @@ export default function AdminPage() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteLead(lead.id)}
+                            onClick={() => lead.id && deleteLead(lead.id)}
                             className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />

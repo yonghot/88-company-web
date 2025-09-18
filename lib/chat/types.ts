@@ -27,6 +27,7 @@ export interface ChatState {
 
 // Lead 데이터는 chat과 다른 곳에서도 사용되므로 별도로 export
 export interface LeadData {
+  id?: string;
   service?: string;
   details?: string;
   budget?: string;

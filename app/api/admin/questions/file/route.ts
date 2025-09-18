@@ -13,12 +13,12 @@ async function checkAdminAuth(): Promise<boolean> {
 
 const QUESTIONS_FILE = path.join(process.cwd(), 'data', 'questions.json');
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const fileContent = await fs.readFile(QUESTIONS_FILE, 'utf-8');
     const data = JSON.parse(fileContent);
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     // 파일이 없으면 빈 데이터 반환
     return NextResponse.json({ questions: [], lastUpdated: null });
   }

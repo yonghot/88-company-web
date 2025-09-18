@@ -35,7 +35,7 @@ function AdminLoginForm() {
       } else {
         setError(data.error || '비밀번호가 올바르지 않습니다.');
       }
-    } catch (err) {
+    } catch {
       setError('로그인 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

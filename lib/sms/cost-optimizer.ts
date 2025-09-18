@@ -187,14 +187,26 @@ export class CostOptimizer {
   }
 
   /**
-   * 알림 발송 (실제 구현 필요)
+   * 알림 발송
    */
   private sendAlert(type: string, message: string): void {
-    // TODO: 실제 알림 구현
-    // - 이메일 발송
-    // - Slack/Discord 웹훅
-    // - 관리자 대시보드 노티
-    console.log(`[Alert] ${type}: ${message}`);
+    const timestamp = new Date().toISOString();
+    const alertData = {
+      timestamp,
+      type,
+      message,
+      stats: this.getStats()
+    };
+
+    console.warn(`🚨 [SMS Alert] ${type}: ${message}`);
+
+    if (typeof localStorage !== 'undefined') {
+      const alerts = JSON.parse(localStorage.getItem('sms_alerts') || '[]');
+      alerts.push(alertData);
+
+      const recentAlerts = alerts.slice(-100);
+      localStorage.setItem('sms_alerts', JSON.stringify(recentAlerts));
+    }
   }
 
   /**
@@ -217,11 +229,41 @@ export class CostOptimizer {
   }
 
   /**
-   * 일일 통계 저장 (DB 또는 파일)
+   * 일일 통계 저장
    */
   private saveDailyStats(): void {
-    // TODO: Supabase 또는 파일 시스템에 저장
-    console.log(`📊 일일 통계 저장: ${JSON.stringify(this.dailyStats)}`);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const statsHistory = JSON.parse(localStorage.getItem('sms_daily_stats') || '[]');
+        statsHistory.push(this.dailyStats);
+
+        const last30Days = statsHistory.slice(-30);
+        localStorage.setItem('sms_daily_stats', JSON.stringify(last30Days));
+
+        console.log(`📊 일일 통계 저장 완료: ${this.dailyStats.date} - ${this.dailyStats.count}건`);
+      } else {
+        const fs = require('fs');
+        const path = require('path');
+        const statsFile = path.join(process.cwd(), 'data', 'sms_stats.json');
+
+        let statsHistory = [];
+        if (fs.existsSync(statsFile)) {
+          statsHistory = JSON.parse(fs.readFileSync(statsFile, 'utf-8'));
+        }
+
+        statsHistory.push(this.dailyStats);
+        const last30Days = statsHistory.slice(-30);
+
+        if (!fs.existsSync(path.dirname(statsFile))) {
+          fs.mkdirSync(path.dirname(statsFile), { recursive: true });
+        }
+
+        fs.writeFileSync(statsFile, JSON.stringify(last30Days, null, 2));
+        console.log(`📊 일일 통계 파일 저장 완료: ${statsFile}`);
+      }
+    } catch (error) {
+      console.error('일일 통계 저장 실패:', error);
+    }
   }
 
   /**
@@ -301,23 +343,60 @@ export class CostOptimizer {
   }
 
   /**
-   * 월간 통계 조회 (간단한 버전)
+   * 월간 통계 조회
    */
   private getMonthlyStats(): {
     totalCount: number;
     totalCost: number;
     averagePerDay: number;
   } {
-    // TODO: 실제로는 DB에서 조회해야 함
-    // 현재는 일일 통계 × 일수로 추정
-    const dayOfMonth = new Date().getDate();
-    const estimatedMonthlyCount = this.dailyStats.count * 30 / dayOfMonth;
-    const estimatedMonthlyCost = this.dailyStats.cost * 30 / dayOfMonth;
+    let monthlyCount = this.dailyStats.count;
+    let monthlyCost = this.dailyStats.cost;
 
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const statsHistory = JSON.parse(localStorage.getItem('sms_daily_stats') || '[]');
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+
+        const thisMonthStats = statsHistory.filter((stat: any) => {
+          const statDate = new Date(stat.date);
+          return statDate.getMonth() === currentMonth && statDate.getFullYear() === currentYear;
+        });
+
+        monthlyCount = thisMonthStats.reduce((sum: number, stat: any) => sum + stat.count, 0) + this.dailyStats.count;
+        monthlyCost = thisMonthStats.reduce((sum: number, stat: any) => sum + stat.cost, 0) + this.dailyStats.cost;
+      } else {
+        const fs = require('fs');
+        const path = require('path');
+        const statsFile = path.join(process.cwd(), 'data', 'sms_stats.json');
+
+        if (fs.existsSync(statsFile)) {
+          const statsHistory = JSON.parse(fs.readFileSync(statsFile, 'utf-8'));
+          const currentMonth = new Date().getMonth();
+          const currentYear = new Date().getFullYear();
+
+          const thisMonthStats = statsHistory.filter((stat: any) => {
+            const statDate = new Date(stat.date);
+            return statDate.getMonth() === currentMonth && statDate.getFullYear() === currentYear;
+          });
+
+          monthlyCount = thisMonthStats.reduce((sum: number, stat: any) => sum + stat.count, 0) + this.dailyStats.count;
+          monthlyCost = thisMonthStats.reduce((sum: number, stat: any) => sum + stat.cost, 0) + this.dailyStats.cost;
+        }
+      }
+    } catch (error) {
+      console.error('월간 통계 조회 실패, 추정치 사용:', error);
+      const dayOfMonth = new Date().getDate();
+      monthlyCount = Math.round(this.dailyStats.count * 30 / dayOfMonth);
+      monthlyCost = Math.round(this.dailyStats.cost * 30 / dayOfMonth);
+    }
+
+    const daysInMonth = 30;
     return {
-      totalCount: Math.round(estimatedMonthlyCount),
-      totalCost: Math.round(estimatedMonthlyCost),
-      averagePerDay: Math.round(estimatedMonthlyCount / 30)
+      totalCount: monthlyCount,
+      totalCost: monthlyCost,
+      averagePerDay: Math.round(monthlyCount / daysInMonth)
     };
   }
 
