@@ -29,28 +29,25 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     this.cache = new QuestionCacheImpl();
 
     // 환경 변수를 안전하게 가져오기
-    const supabaseUrl = (typeof window !== 'undefined'
-      ? process.env.NEXT_PUBLIC_SUPABASE_URL
-      : process.env.NEXT_PUBLIC_SUPABASE_URL) || '';
-    const supabaseKey = (typeof window !== 'undefined'
-      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) || '';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
     // Supabase가 올바르게 설정되었는지 확인
     const isValidSupabaseConfig =
       supabaseUrl &&
       supabaseKey &&
-      supabaseUrl.length > 0 &&
-      supabaseKey.length > 0 &&
+      supabaseUrl.length > 10 &&
+      supabaseKey.length > 10 &&
       supabaseUrl.startsWith('http') &&
       !supabaseUrl.includes('placeholder') &&
       !supabaseUrl.includes('your_supabase') &&
       !supabaseUrl.includes('your-project-ref');
 
-    if (isValidSupabaseConfig && supabaseUrl && supabaseKey) {
+    if (isValidSupabaseConfig) {
       try {
         this.supabase = createClient(supabaseUrl, supabaseKey);
         console.log('[DynamicQuestionService] Supabase client created successfully');
+        console.log('[DynamicQuestionService] URL:', supabaseUrl.substring(0, 30) + '...');
       } catch (error) {
         console.error('[DynamicQuestionService] Failed to create Supabase client:', error);
         this.supabase = null;
@@ -59,6 +56,8 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     } else {
       // Supabase not configured, using static questions (this is expected in development)
       console.log('[DynamicQuestionService] Supabase not configured, using localStorage/static fallback');
+      console.log('[DynamicQuestionService] URL check:', supabaseUrl ? 'exists' : 'missing');
+      console.log('[DynamicQuestionService] Key check:', supabaseKey ? 'exists' : 'missing');
       this.supabase = null;
       this.useStaticFallback = true;
     }

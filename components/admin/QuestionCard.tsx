@@ -29,6 +29,8 @@ interface QuestionCardProps {
   onMoveUp: (index: number) => void;
   onMoveDown: (index: number) => void;
   onToggleActive?: (step: string) => void;
+  dragAttributes?: any;
+  dragListeners?: any;
 }
 
 const typeIcons = {
@@ -57,7 +59,9 @@ export default function QuestionCard({
   onDelete,
   onMoveUp,
   onMoveDown,
-  onToggleActive
+  onToggleActive,
+  dragAttributes,
+  dragListeners
 }: QuestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const Icon = typeIcons[question.type as keyof typeof typeIcons] || MessageSquare;
@@ -86,7 +90,9 @@ export default function QuestionCard({
       <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-3">
           {/* 드래그 핸들 */}
-          <GripVertical className="w-5 h-5 text-gray-400 dark:text-gray-600 cursor-grab" />
+          <div {...dragAttributes} {...dragListeners} className="cursor-grab">
+            <GripVertical className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+          </div>
 
           {/* 인덱스 번호 */}
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">

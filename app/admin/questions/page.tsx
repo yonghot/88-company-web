@@ -69,7 +69,7 @@ function SortableQuestionCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style}>
       <QuestionCard
         question={question}
         index={index}
@@ -81,6 +81,8 @@ function SortableQuestionCard({
         onMoveUp={onMoveUp}
         onMoveDown={onMoveDown}
         onToggleActive={onToggleActive}
+        dragAttributes={attributes}
+        dragListeners={listeners}
       />
     </div>
   );
