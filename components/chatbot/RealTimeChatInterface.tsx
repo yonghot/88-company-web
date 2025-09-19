@@ -24,7 +24,6 @@ export function RealTimeChatInterface() {
   const [showVerification, setShowVerification] = useState(false);
   const [chatFlow, setChatFlow] = useState<ChatFlowMap>({});
   const [totalSteps, setTotalSteps] = useState(0);
-  const [shouldReset, setShouldReset] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -55,66 +54,29 @@ export function RealTimeChatInterface() {
     });
   }, []);
 
-  // 질문 로드 및 실시간 업데이트 설정
+  // 질문 초기 로드 (페이지 로드 시에만)
   useEffect(() => {
     const loadFlow = () => {
-      console.log('[RealTimeChatInterface] Loading flow...');
+      console.log('[RealTimeChatInterface] Initial flow loading...');
       const flow = enhancedRealtimeService.getChatFlow();
       const steps = enhancedRealtimeService.getTotalSteps();
 
       setChatFlow(flow);
       setTotalSteps(steps);
 
-      // 플로우가 변경되면 챗봇 리셋 (첫 로드 제외)
-      if (Object.keys(chatFlow).length > 0) {
-        console.log('[RealTimeChatInterface] Flow changed, resetting chat...');
-        setShouldReset(true);
-      } else {
-        // 첫 로드 시 시작 메시지 표시
+      // 첫 로드 시 시작 메시지 표시
+      if (Object.keys(flow).length > 0) {
         initializeChat(flow);
       }
     };
 
-    // 초기 로드
+    // 초기 로드만 수행 (실시간 동기화 제거)
     loadFlow();
 
-    // 실시간 업데이트 구독
-    const unsubscribe = enhancedRealtimeService.subscribe(() => {
-      console.log('[RealTimeChatInterface] Questions updated, reloading flow...');
-      loadFlow();
-    });
-
-    // 브라우저 이벤트 리스너
-    const handleQuestionsUpdated = () => {
-      console.log('[RealTimeChatInterface] questionsUpdated event received');
-      loadFlow();
-    };
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'chat_questions') {
-        console.log('[RealTimeChatInterface] Storage change detected');
-        loadFlow();
-      }
-    };
-
-    window.addEventListener('questionsUpdated', handleQuestionsUpdated);
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      unsubscribe();
-      window.removeEventListener('questionsUpdated', handleQuestionsUpdated);
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    // 클린업: 실시간 구독 및 이벤트 리스너 모두 제거
   }, []);
 
-  // 챗봇 리셋 처리
-  useEffect(() => {
-    if (shouldReset && Object.keys(chatFlow).length > 0) {
-      console.log('[RealTimeChatInterface] Resetting chat...');
-      initializeChat(chatFlow);
-      setShouldReset(false);
-    }
-  }, [shouldReset, chatFlow, initializeChat]);
+  // 챗봇 리셋 처리 제거 (자동 리셋 방지)
 
   const handleUserInput = async (value: string) => {
     const currentStep = chatFlow[chatState.currentStep];
@@ -281,7 +243,7 @@ export function RealTimeChatInterface() {
           <div className="max-w-4xl mx-auto">
             <ProgressBar currentStep={getProgressSteps()} totalSteps={totalSteps} />
             <div className="text-xs text-center text-gray-500 mt-1">
-              질문 관리에서 변경하면 자동으로 새로고침됩니다
+              페이지를 새로고침하면 최신 질문이 반영됩니다
             </div>
           </div>
         </div>
