@@ -460,6 +460,8 @@ export class EnhancedRealtimeService {
   }
 
   private saveToLocalStorage(questions: ChatQuestion[]): void {
+    if (typeof window === 'undefined') return;
+
     try {
       localStorage.setItem('chat_questions', JSON.stringify(questions));
       window.dispatchEvent(new Event('questionsUpdated'));
@@ -469,6 +471,10 @@ export class EnhancedRealtimeService {
   }
 
   private loadFromLocalStorage(): ChatQuestion[] {
+    if (typeof window === 'undefined') {
+      return this.getDefaultQuestions();
+    }
+
     try {
       const stored = localStorage.getItem('chat_questions');
       if (stored) {
