@@ -1,19 +1,111 @@
 import { ChatQuestion, ChatFlow } from './dynamic-types';
 import { ChatStep } from './types';
+import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 
 export class RealTimeQuestionService {
   private static instance: RealTimeQuestionService;
   private readonly STORAGE_KEY = 'chat_questions';
   private readonly UPDATE_EVENT = 'questionsUpdated';
   private listeners: Set<() => void> = new Set();
+  private supabase: SupabaseClient | null = null;
+  private questionsCache: ChatQuestion[] = [];
+  private realtimeChannel: RealtimeChannel | null = null;
+  private isSupabaseEnabled: boolean = false;
 
-  private constructor() {}
+  private constructor() {
+    this.initializeSupabase();
+  }
 
   static getInstance(): RealTimeQuestionService {
     if (!this.instance) {
       this.instance = new RealTimeQuestionService();
     }
     return this.instance;
+  }
+
+  private initializeSupabase(): void {
+    if (typeof window === 'undefined') return;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    const isValidSupabaseConfig =
+      supabaseUrl &&
+      supabaseKey &&
+      supabaseUrl.length > 10 &&
+      supabaseKey.length > 10 &&
+      supabaseUrl.startsWith('http') &&
+      !supabaseUrl.includes('placeholder') &&
+      !supabaseUrl.includes('your_supabase');
+
+    if (isValidSupabaseConfig) {
+      try {
+        this.supabase = createClient(supabaseUrl, supabaseKey);
+        this.isSupabaseEnabled = true;
+        this.setupRealtimeSubscription();
+        this.loadFromSupabase();
+        console.log('[RealTimeQuestionService] Supabase initialized successfully');
+      } catch (error) {
+        console.error('[RealTimeQuestionService] Failed to initialize Supabase:', error);
+        this.isSupabaseEnabled = false;
+      }
+    } else {
+      console.log('[RealTimeQuestionService] Using localStorage fallback');
+    }
+  }
+
+  private async setupRealtimeSubscription(): Promise<void> {
+    if (!this.supabase) return;
+
+    try {
+      this.realtimeChannel = this.supabase
+        .channel('chat_questions_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'chat_questions'
+          },
+          (payload) => {
+            console.log('[RealTimeQuestionService] Database change detected:', payload);
+            this.handleDatabaseChange(payload);
+          }
+        )
+        .subscribe((status) => {
+          console.log('[RealTimeQuestionService] Realtime subscription status:', status);
+        });
+    } catch (error) {
+      console.error('[RealTimeQuestionService] Failed to setup realtime subscription:', error);
+    }
+  }
+
+  private async handleDatabaseChange(payload: any): Promise<void> {
+    await this.loadFromSupabase();
+    this.notifyListeners();
+  }
+
+  private async loadFromSupabase(): Promise<void> {
+    if (!this.supabase) return;
+
+    try {
+      const { data, error } = await this.supabase
+        .from('chat_questions')
+        .select('*')
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        console.error('[RealTimeQuestionService] Failed to load from Supabase:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        this.questionsCache = data;
+        console.log('[RealTimeQuestionService] Loaded', data.length, 'questions from Supabase');
+      }
+    } catch (error) {
+      console.error('[RealTimeQuestionService] Error loading from Supabase:', error);
+    }
   }
 
   getActiveQuestions(): ChatQuestion[] {
@@ -26,6 +118,10 @@ export class RealTimeQuestionService {
   getAllQuestions(): ChatQuestion[] {
     if (typeof window === 'undefined') {
       return this.getDefaultQuestions();
+    }
+
+    if (this.isSupabaseEnabled && this.questionsCache.length > 0) {
+      return this.questionsCache;
     }
 
     try {
@@ -45,28 +141,54 @@ export class RealTimeQuestionService {
     return defaultQuestions;
   }
 
-  saveQuestions(questions: ChatQuestion[]): void {
+  async saveQuestions(questions: ChatQuestion[]): Promise<void> {
     if (typeof window === 'undefined') return;
 
+    if (this.isSupabaseEnabled && this.supabase) {
+      try {
+        const { error: deleteError } = await this.supabase
+          .from('chat_questions')
+          .delete()
+          .neq('step', '');
+
+        if (deleteError) {
+          console.error('[RealTimeQuestionService] Failed to clear questions:', deleteError);
+        }
+
+        const { error: insertError } = await this.supabase
+          .from('chat_questions')
+          .insert(questions as any);
+
+        if (insertError) {
+          console.error('[RealTimeQuestionService] Failed to save to Supabase:', insertError);
+          this.saveToLocalStorage(questions);
+        } else {
+          console.log('[RealTimeQuestionService] Saved', questions.length, 'questions to Supabase');
+          this.questionsCache = questions;
+        }
+      } catch (error) {
+        console.error('[RealTimeQuestionService] Error saving to Supabase:', error);
+        this.saveToLocalStorage(questions);
+      }
+    } else {
+      this.saveToLocalStorage(questions);
+    }
+
+    this.notifyListeners();
+    window.dispatchEvent(new Event(this.UPDATE_EVENT));
+  }
+
+  private saveToLocalStorage(questions: ChatQuestion[]): void {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(questions));
-
-      // 저장 후 즉시 모든 리스너에게 알림
-      this.notifyListeners();
-
-      // 브라우저 이벤트도 발생
-      window.dispatchEvent(new Event(this.UPDATE_EVENT));
-
-      // storage 이벤트도 수동으로 발생시켜 다른 탭에도 알림
       window.dispatchEvent(new StorageEvent('storage', {
         key: this.STORAGE_KEY,
         newValue: JSON.stringify(questions),
         url: window.location.href
       }));
-
-      console.log('[RealTimeQuestionService] Questions saved and notifications sent');
+      console.log('[RealTimeQuestionService] Questions saved to localStorage');
     } catch (error) {
-      console.error('Failed to save questions:', error);
+      console.error('Failed to save questions to localStorage:', error);
     }
   }
 
@@ -273,6 +395,18 @@ export class RealTimeQuestionService {
         order_index: 5
       }
     ];
+  }
+
+  cleanup(): void {
+    if (this.realtimeChannel) {
+      this.supabase?.removeChannel(this.realtimeChannel);
+      this.realtimeChannel = null;
+    }
+    this.listeners.clear();
+  }
+
+  isUsingSupabase(): boolean {
+    return this.isSupabaseEnabled;
   }
 }
 

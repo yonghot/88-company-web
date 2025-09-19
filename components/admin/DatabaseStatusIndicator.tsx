@@ -12,6 +12,7 @@ import {
   HardDrive,
   Info
 } from 'lucide-react';
+import { realTimeQuestionService } from '@/lib/chat/real-time-question-service';
 
 interface DatabaseStatusIndicatorProps {
   className?: string;
@@ -34,22 +35,33 @@ export default function DatabaseStatusIndicator({ className = '' }: DatabaseStat
 
   const checkDatabaseStatus = async () => {
     try {
-      // API 엔드포인트를 통해 서버 사이드에서 상태 확인
-      const response = await fetch('/api/admin/db-status');
+      // realTimeQuestionService를 통해 직접 상태 확인
+      const isUsingSupabase = realTimeQuestionService.isUsingSupabase();
 
-      if (!response.ok) {
-        setStatus('error');
-        setStorageType('localStorage');
-        return;
-      }
-
-      const data = await response.json();
-
-      setStatus(data.status as ConnectionStatus);
-      setStorageType(data.storageType as StorageType);
-
-      if (data.status === 'connected') {
+      if (isUsingSupabase) {
+        setStatus('connected');
+        setStorageType('supabase');
         setLastSync(new Date());
+      } else {
+        // API 엔드포인트를 통해 백업 확인
+        try {
+          const response = await fetch('/api/admin/db-status');
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.status === 'connected') {
+              setStatus('connected');
+              setStorageType('supabase');
+              setLastSync(new Date());
+              return;
+            }
+          }
+        } catch (apiError) {
+          console.error('[DatabaseStatus] API check failed:', apiError);
+        }
+
+        setStatus('disconnected');
+        setStorageType('localStorage');
       }
     } catch (error) {
       console.error('[DatabaseStatus] Check failed:', error);
