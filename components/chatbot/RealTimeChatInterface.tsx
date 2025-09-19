@@ -7,7 +7,7 @@ import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
 import { Message, ChatState, LeadData, ChatFlowMap, ChatStep } from '@/lib/types';
-import { realTimeQuestionService } from '@/lib/chat/real-time-question-service';
+import { enhancedRealtimeService } from '@/lib/chat/enhanced-realtime-service';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
 
@@ -59,8 +59,8 @@ export function RealTimeChatInterface() {
   useEffect(() => {
     const loadFlow = () => {
       console.log('[RealTimeChatInterface] Loading flow...');
-      const flow = realTimeQuestionService.getChatFlow();
-      const steps = realTimeQuestionService.getTotalSteps();
+      const flow = enhancedRealtimeService.getChatFlow();
+      const steps = enhancedRealtimeService.getTotalSteps();
 
       setChatFlow(flow);
       setTotalSteps(steps);
@@ -79,7 +79,7 @@ export function RealTimeChatInterface() {
     loadFlow();
 
     // 실시간 업데이트 구독
-    const unsubscribe = realTimeQuestionService.subscribe(() => {
+    const unsubscribe = enhancedRealtimeService.subscribe(() => {
       console.log('[RealTimeChatInterface] Questions updated, reloading flow...');
       loadFlow();
     });

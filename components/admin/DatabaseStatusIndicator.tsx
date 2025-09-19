@@ -12,7 +12,7 @@ import {
   HardDrive,
   Info
 } from 'lucide-react';
-import { realTimeQuestionService } from '@/lib/chat/real-time-question-service';
+import { enhancedRealtimeService } from '@/lib/chat/enhanced-realtime-service';
 
 interface DatabaseStatusIndicatorProps {
   className?: string;
@@ -35,33 +35,22 @@ export default function DatabaseStatusIndicator({ className = '' }: DatabaseStat
 
   const checkDatabaseStatus = async () => {
     try {
-      // realTimeQuestionService를 통해 직접 상태 확인
-      const isUsingSupabase = realTimeQuestionService.isUsingSupabase();
+      // enhancedRealtimeService를 통해 직접 상태 확인
+      const status = enhancedRealtimeService.getStatus();
 
-      if (isUsingSupabase) {
+      if (status.isSupabaseEnabled && status.state === 'connected') {
         setStatus('connected');
         setStorageType('supabase');
-        setLastSync(new Date());
-      } else {
-        // API 엔드포인트를 통해 백업 확인
-        try {
-          const response = await fetch('/api/admin/db-status');
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.status === 'connected') {
-              setStatus('connected');
-              setStorageType('supabase');
-              setLastSync(new Date());
-              return;
-            }
-          }
-        } catch (apiError) {
-          console.error('[DatabaseStatus] API check failed:', apiError);
-        }
-
-        setStatus('disconnected');
+        setLastSync(status.lastSync || new Date());
+      } else if (status.state === 'connecting' || status.state === 'reconnecting') {
+        setStatus('connecting');
+        setStorageType('supabase');
+      } else if (status.state === 'error') {
+        setStatus('error');
         setStorageType('localStorage');
+      } else {
+        setStatus('disconnected');
+        setStorageType(status.isSupabaseEnabled ? 'supabase' : 'localStorage');
       }
     } catch (error) {
       console.error('[DatabaseStatus] Check failed:', error);

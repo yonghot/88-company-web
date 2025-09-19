@@ -196,7 +196,15 @@ export class EnhancedRealtimeService {
   }
 
   private async loadInitialData(): Promise<void> {
+    console.log('[EnhancedRealtimeService] Loading initial data...');
     await this.loadFromDatabase();
+
+    // \ub370\uc774\ud130\uac00 \uc5c6\uc73c\uba74 \uae30\ubcf8 \uc9c8\ubb38 \ub85c\ub4dc
+    if (this.questionsCache.length === 0) {
+      console.log('[EnhancedRealtimeService] No data from Supabase, loading from localStorage or defaults');
+      this.questionsCache = this.loadFromLocalStorage();
+    }
+
     this.notifyListeners();
   }
 
@@ -258,7 +266,124 @@ export class EnhancedRealtimeService {
       return this.questionsCache;
     }
 
-    return this.loadFromLocalStorage();
+    // \uce90\uc2dc\uac00 \ube44\uc5b4\uc788\uc73c\uba74 localStorage\uc5d0\uc11c \ub85c\ub4dc
+    const questions = this.loadFromLocalStorage();
+    if (questions.length > 0) {
+      this.questionsCache = questions;
+    }
+    return questions;
+  }
+
+  getActiveQuestions(): ChatQuestion[] {
+    const allQuestions = this.getQuestions();
+    return allQuestions
+      .filter(q => q.is_active === true)
+      .sort((a, b) => a.order_index - b.order_index);
+  }
+
+  getChatFlow(): Record<string, any> {
+    const activeQuestions = this.getActiveQuestions();
+    const flow: Record<string, any> = {};
+
+    activeQuestions.forEach((question, index) => {
+      const nextQuestion = activeQuestions[index + 1];
+
+      flow[question.step] = {
+        id: question.step,
+        question: question.question,
+        inputType: this.getInputType(question),
+        placeholder: question.placeholder,
+        options: question.options,
+        validation: this.getValidation(question),
+        nextStep: this.createNextStepFunction(question, nextQuestion)
+      };
+    });
+
+    if (flow['phone']) {
+      flow['phoneVerification'] = {
+        id: 'phoneVerification',
+        question: '📱 인증번호 6자리를 입력해주세요.',
+        inputType: 'text',
+        placeholder: '인증번호 6자리',
+        validation: (value: string) => /^[0-9]{6}$/.test(value),
+        nextStep: () => 'complete'
+      };
+
+      const originalPhoneNext = flow['phone'].nextStep;
+      flow['phone'].nextStep = () => 'phoneVerification';
+    }
+
+    if (!flow['complete']) {
+      flow['complete'] = {
+        id: 'complete',
+        question: '🎉 등록이 완료되었습니다!\n\n빠른 시일 내에 연락드리겠습니다.\n88 Company와 함께 성공적인 창업을 시작하세요!',
+        inputType: 'text',
+        nextStep: () => 'complete'
+      };
+    }
+
+    return flow;
+  }
+
+  getTotalSteps(): number {
+    const activeQuestions = this.getActiveQuestions();
+    const hasPhone = activeQuestions.some(q => q.step === 'phone');
+    return activeQuestions.length + (hasPhone ? 1 : 0);
+  }
+
+  private getInputType(question: ChatQuestion): string {
+    if (question.step === 'phone') return 'phone';
+
+    switch (question.type) {
+      case 'select':
+      case 'quick-reply':
+        return 'select';
+      case 'textarea':
+        return 'textarea';
+      default:
+        return 'text';
+    }
+  }
+
+  private getValidation(question: ChatQuestion): ((value: string) => boolean) | undefined {
+    if (question.step === 'phone') {
+      return (value: string) => {
+        const phoneRegex = /^(01[0-9]{1})-?([0-9]{3,4})-?([0-9]{4})$/;
+        return phoneRegex.test(value.replace(/-/g, ''));
+      };
+    }
+
+    if (question.step === 'name') {
+      return (value: string) => value.length >= 2;
+    }
+
+    if (question.validation?.required) {
+      return (value: string) => value.trim().length > 0;
+    }
+
+    return undefined;
+  }
+
+  private createNextStepFunction(
+    question: ChatQuestion,
+    nextQuestion?: ChatQuestion
+  ): (value?: string) => string {
+    return (value?: string) => {
+      if (question.step === 'phone') return 'phoneVerification';
+      if (question.step === 'phoneVerification') return 'complete';
+
+      if (nextQuestion) return nextQuestion.step;
+      if (question.next_step) return question.next_step;
+
+      return 'complete';
+    };
+  }
+
+  subscribe(listener: () => void): () => void {
+    const questionsListener = (questions: ChatQuestion[]) => {
+      listener();
+    };
+    return this.subscribeToQuestions(questionsListener);
   }
 
   getStatus(): RealtimeStatus {
@@ -352,7 +477,69 @@ export class EnhancedRealtimeService {
     } catch (error) {
       console.error('[EnhancedRealtimeService] localStorage load error:', error);
     }
-    return [];
+    return this.getDefaultQuestions();
+  }
+
+  private getDefaultQuestions(): ChatQuestion[] {
+    return [
+      {
+        step: 'welcome',
+        type: 'select',
+        question: '안녕하세요! 88 Company입니다. 어떤 서비스를 찾고 계신가요?',
+        options: ['창업 컨설팅', '경영 전략 수립', '마케팅 전략', '투자 유치 지원', '기타 문의'],
+        next_step: 'budget',
+        is_active: true,
+        order_index: 0,
+        placeholder: ''
+      },
+      {
+        step: 'budget',
+        type: 'select',
+        question: '예상하시는 예산 규모는 어느 정도인가요?',
+        options: ['500만원 미만', '500만원 - 1,000만원', '1,000만원 - 3,000만원', '3,000만원 - 5,000만원', '5,000만원 이상', '협의 필요'],
+        next_step: 'timeline',
+        is_active: true,
+        order_index: 1,
+        placeholder: ''
+      },
+      {
+        step: 'timeline',
+        type: 'select',
+        question: '프로젝트는 언제 시작하실 예정인가요?',
+        options: ['즉시 시작', '1주일 이내', '1개월 이내', '3개월 이내', '아직 미정'],
+        next_step: 'details',
+        is_active: true,
+        order_index: 2,
+        placeholder: ''
+      },
+      {
+        step: 'details',
+        type: 'textarea',
+        question: '프로젝트에 대해 추가로 알려주실 내용이 있나요?',
+        placeholder: '현재 상황, 목표, 특별한 요구사항 등을 자유롭게 작성해주세요...',
+        next_step: 'name',
+        is_active: true,
+        order_index: 3
+      },
+      {
+        step: 'name',
+        type: 'text',
+        question: '성함을 알려주세요.',
+        placeholder: '홍길동',
+        next_step: 'phone',
+        is_active: true,
+        order_index: 4
+      },
+      {
+        step: 'phone',
+        type: 'text',
+        question: '연락 가능한 전화번호를 입력해주세요.',
+        placeholder: '010-0000-0000',
+        next_step: 'complete',
+        is_active: true,
+        order_index: 5
+      }
+    ];
   }
 
   async forceRefresh(): Promise<void> {
