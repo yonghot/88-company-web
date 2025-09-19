@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { LeadData } from '@/lib/types';
 
 // Fallback to file system if Supabase is not configured
@@ -7,13 +7,6 @@ import { writeFile, readFile, mkdir } from 'fs/promises';
 import path from 'path';
 
 const LEADS_FILE = path.join(process.cwd(), 'data', 'leads.json');
-
-// Check if Supabase is configured
-const isSupabaseConfigured = () => {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL && 
-         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-         !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_supabase');
-};
 
 // File system fallback functions
 async function ensureDataDirectory() {
@@ -53,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       // Use Supabase
       const leadData = {
         id: phoneId,
@@ -152,7 +145,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       // Use Supabase
       const { data: leads, error } = await supabase
         .from('leads')
@@ -191,7 +184,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       // Use Supabase
       const { error } = await supabase
         .from('leads')

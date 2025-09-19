@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { SMSService } from './sms-service';
 import { rateLimiter } from './rate-limiter';
 import { VerificationCode } from './types';
@@ -292,7 +292,7 @@ export class VerificationService {
    * 중복 전화번호 확인
    */
   private async checkDuplicatePhone(phone: string): Promise<boolean> {
-    if (this.isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       const { data } = await supabase
         .from('leads')
         .select('id')
@@ -319,7 +319,7 @@ export class VerificationService {
       verified: false
     };
 
-    if (this.isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       // 기존 코드 삭제
       await supabase
         .from('verification_codes')
@@ -344,7 +344,7 @@ export class VerificationService {
    * 인증번호 조회
    */
   private async getVerificationCode(phone: string): Promise<VerificationCode | null> {
-    if (this.isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       const { data } = await supabase
         .from('verification_codes')
         .select('*')
@@ -374,7 +374,7 @@ export class VerificationService {
    * 인증번호 삭제
    */
   private async deleteVerificationCode(phone: string): Promise<void> {
-    if (this.isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       await supabase
         .from('verification_codes')
         .delete()
@@ -388,7 +388,7 @@ export class VerificationService {
    * 시도 횟수 증가
    */
   private async incrementAttempts(phone: string): Promise<void> {
-    if (this.isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       const { data } = await supabase
         .from('verification_codes')
         .select('attempts')
@@ -409,16 +409,6 @@ export class VerificationService {
     }
   }
 
-  /**
-   * Supabase 설정 확인
-   */
-  private isSupabaseConfigured(): boolean {
-    return !!(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_supabase')
-    );
-  }
 
   /**
    * 통계 정보
@@ -461,7 +451,7 @@ export class VerificationService {
     }
 
     // Supabase 정리
-    if (this.isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       const { data } = await supabase
         .from('verification_codes')
         .delete()
