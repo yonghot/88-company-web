@@ -34,38 +34,25 @@ export default function DatabaseStatusIndicator({ className = '' }: DatabaseStat
 
   const checkDatabaseStatus = async () => {
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // API 엔드포인트를 통해 서버 사이드에서 상태 확인
+      const response = await fetch('/api/admin/db-status');
 
-      if (supabaseUrl && supabaseKey && !supabaseUrl.includes('your_supabase')) {
-        // Supabase 연결 테스트
-        const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`
-          }
-        });
+      if (!response.ok) {
+        setStatus('error');
+        setStorageType('localStorage');
+        return;
+      }
 
-        if (response.ok) {
-          setStatus('connected');
-          setStorageType('supabase');
-          setLastSync(new Date());
-        } else {
-          setStatus('error');
-          setStorageType('localStorage');
-        }
-      } else {
-        // Supabase 설정 안됨
-        setStatus('disconnected');
+      const data = await response.json();
 
-        // 파일시스템 또는 localStorage 구분
-        if (typeof window !== 'undefined') {
-          setStorageType('localStorage');
-        } else {
-          setStorageType('fileSystem');
-        }
+      setStatus(data.status as ConnectionStatus);
+      setStorageType(data.storageType as StorageType);
+
+      if (data.status === 'connected') {
+        setLastSync(new Date());
       }
     } catch (error) {
+      console.error('[DatabaseStatus] Check failed:', error);
       setStatus('error');
       setStorageType('localStorage');
     }
