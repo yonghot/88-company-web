@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChatQuestion } from '@/lib/chat/dynamic-types';
-import { realTimeQuestionService } from '@/lib/chat/real-time-question-service';
+import { enhancedRealtimeService } from '@/lib/chat/enhanced-realtime-service';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
@@ -32,16 +32,16 @@ import {
   Settings,
   Search,
   Filter,
-  ChevronLeft
+  ChevronLeft,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react';
 
-// 컴포넌트 임포트
 import QuestionCard from '@/components/admin/QuestionCard';
 import QuestionEditModal from '@/components/admin/QuestionEditModal';
 import ChatPreview from '@/components/admin/ChatPreview';
-import DatabaseStatusIndicator from '@/components/admin/DatabaseStatusIndicator';
 
-// Sortable 래퍼 컴포넌트
 function SortableQuestionCard({
   question,
   index,
@@ -88,7 +88,14 @@ function SortableQuestionCard({
   );
 }
 
-export default function QuestionsManagement() {
+interface ConnectionStatus {
+  state: 'connecting' | 'connected' | 'disconnected' | 'error' | 'reconnecting';
+  lastSync: Date | null;
+  errorCount: number;
+  isSupabaseEnabled: boolean;
+}
+
+export default function EnhancedQuestionsManagement() {
   const [questions, setQuestions] = useState<ChatQuestion[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<ChatQuestion[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<ChatQuestion | null>(null);
@@ -99,6 +106,12 @@ export default function QuestionsManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    state: 'disconnected',
+    lastSync: null,
+    errorCount: 0,
+    isSupabaseEnabled: false
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -108,20 +121,25 @@ export default function QuestionsManagement() {
   );
 
   useEffect(() => {
-    loadQuestions();
-
-    const unsubscribe = realTimeQuestionService.subscribe(() => {
-      console.log('[Admin] Questions updated, reloading...');
-      loadQuestions();
+    const unsubscribeQuestions = enhancedRealtimeService.subscribeToQuestions((updatedQuestions) => {
+      console.log('[Admin] Questions updated:', updatedQuestions.length);
+      setQuestions(updatedQuestions);
     });
 
+    const unsubscribeStatus = enhancedRealtimeService.subscribeToStatus((status) => {
+      console.log('[Admin] Connection status:', status);
+      setConnectionStatus(status);
+    });
+
+    enhancedRealtimeService.forceRefresh();
+
     return () => {
-      unsubscribe();
+      unsubscribeQuestions();
+      unsubscribeStatus();
     };
   }, []);
 
   useEffect(() => {
-    // 필터링 로직
     let filtered = questions;
 
     if (searchQuery) {
@@ -138,16 +156,11 @@ export default function QuestionsManagement() {
     setFilteredQuestions(filtered);
   }, [questions, searchQuery, filterType]);
 
-  const loadQuestions = () => {
-    const loadedQuestions = realTimeQuestionService.getAllQuestions();
-    setQuestions(loadedQuestions);
-  };
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
 
@@ -157,21 +170,25 @@ export default function QuestionsManagement() {
 
       const newQuestions = arrayMove(questions, oldIndex, newIndex);
 
-      // order_index 업데이트
       newQuestions.forEach((q, i) => {
         q.order_index = i;
       });
 
       setQuestions(newQuestions);
-      saveQuestions(newQuestions);
+      await saveQuestions(newQuestions);
     }
   };
 
   const saveQuestions = async (questionsToSave: ChatQuestion[]) => {
     setIsSaving(true);
-    await realTimeQuestionService.saveQuestions(questionsToSave);
+    const success = await enhancedRealtimeService.saveQuestions(questionsToSave);
     setIsSaving(false);
-    showSuccess();
+
+    if (success) {
+      showSuccess();
+    } else {
+      showError();
+    }
   };
 
   const showSuccess = () => {
@@ -179,20 +196,24 @@ export default function QuestionsManagement() {
     setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
+  const showError = () => {
+    alert('저장에 실패했습니다. 다시 시도해주세요.');
+  };
+
   const handleEdit = (question: ChatQuestion) => {
     setEditingQuestion(question);
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = (updatedQuestion: ChatQuestion) => {
+  const handleSaveEdit = async (updatedQuestion: ChatQuestion) => {
     const updatedQuestions = questions.map(q =>
       q.step === updatedQuestion.step ? updatedQuestion : q
     );
     setQuestions(updatedQuestions);
-    saveQuestions(updatedQuestions);
+    await saveQuestions(updatedQuestions);
   };
 
-  const handleDelete = (step: string) => {
+  const handleDelete = async (step: string) => {
     if (!confirm('정말 이 질문을 삭제하시겠습니까?')) return;
 
     const updatedQuestions = questions
@@ -200,31 +221,31 @@ export default function QuestionsManagement() {
       .map((q, i) => ({ ...q, order_index: i }));
 
     setQuestions(updatedQuestions);
-    saveQuestions(updatedQuestions);
+    await saveQuestions(updatedQuestions);
   };
 
-  const handleMoveUp = (index: number) => {
+  const handleMoveUp = async (index: number) => {
     if (index === 0) return;
     const newQuestions = arrayMove(questions, index, index - 1);
     newQuestions.forEach((q, i) => { q.order_index = i; });
     setQuestions(newQuestions);
-    saveQuestions(newQuestions);
+    await saveQuestions(newQuestions);
   };
 
-  const handleMoveDown = (index: number) => {
+  const handleMoveDown = async (index: number) => {
     if (index === questions.length - 1) return;
     const newQuestions = arrayMove(questions, index, index + 1);
     newQuestions.forEach((q, i) => { q.order_index = i; });
     setQuestions(newQuestions);
-    saveQuestions(newQuestions);
+    await saveQuestions(newQuestions);
   };
 
-  const handleToggleActive = (step: string) => {
+  const handleToggleActive = async (step: string) => {
     const updatedQuestions = questions.map(q =>
       q.step === step ? { ...q, is_active: !q.is_active } : q
     );
     setQuestions(updatedQuestions);
-    saveQuestions(updatedQuestions);
+    await saveQuestions(updatedQuestions);
   };
 
   const handleAddQuestion = () => {
@@ -232,14 +253,46 @@ export default function QuestionsManagement() {
     setIsEditModalOpen(true);
   };
 
-  const handleReload = () => {
-    loadQuestions();
+  const handleReload = async () => {
+    await enhancedRealtimeService.forceRefresh();
     showSuccess();
+  };
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus.state) {
+      case 'connected':
+        return <Wifi className="w-5 h-5 text-green-500" />;
+      case 'connecting':
+      case 'reconnecting':
+        return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />;
+      case 'disconnected':
+        return <WifiOff className="w-5 h-5 text-gray-500" />;
+      case 'error':
+        return <AlertCircle className="w-5 h-5 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getConnectionStatusText = () => {
+    switch (connectionStatus.state) {
+      case 'connected':
+        return 'Supabase 실시간 동기화 활성';
+      case 'connecting':
+        return 'Supabase 연결 중...';
+      case 'reconnecting':
+        return `재연결 시도 중... (${connectionStatus.errorCount}회)`;
+      case 'disconnected':
+        return connectionStatus.isSupabaseEnabled ? '연결 끊김' : '로컬 모드';
+      case 'error':
+        return '연결 오류';
+      default:
+        return '알 수 없음';
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* 헤더 */}
       <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -247,81 +300,87 @@ export default function QuestionsManagement() {
               <a
                 href="/admin"
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                title="관리자 대시보드로 돌아가기"
               >
                 <ChevronLeft className="w-5 h-5" />
               </a>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                챗봇 질문 관리
+                질문 관리
               </h1>
-              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-medium rounded-full">
-                {questions.length}개 질문
-              </span>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+                {getConnectionStatusIcon()}
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {getConnectionStatusText()}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <DatabaseStatusIndicator />
+
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleReload}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                disabled={isSaving}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 transition-all"
                 title="새로고침"
               >
                 <RefreshCw className={`w-5 h-5 ${isSaving ? 'animate-spin' : ''}`} />
               </button>
+
               <button
                 onClick={() => setIsPreviewOpen(true)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-2"
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
               >
                 <Eye className="w-4 h-4" />
                 <span className="hidden sm:inline">미리보기</span>
               </button>
+
               <button
                 onClick={handleAddQuestion}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+                className="flex items-center gap-2 px-4 py-2 text-white bg-[#8800ff] rounded-lg hover:bg-[#7700dd] transition-all"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">새 질문</span>
+                <span className="hidden sm:inline">질문 추가</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 필터 바 */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="질문 검색..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="all">모든 타입</option>
-                <option value="text">텍스트</option>
-                <option value="textarea">긴 텍스트</option>
-                <option value="select">선택지</option>
-                <option value="quick-reply">빠른 응답</option>
-                <option value="verification">인증</option>
-              </select>
-            </div>
+      {connectionStatus.state === 'error' && connectionStatus.errorCount > 3 && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4">
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+            <p className="text-sm text-red-700 dark:text-red-300">
+              Supabase 연결에 문제가 있습니다. 로컬 모드로 전환되었습니다.
+              {connectionStatus.lastSync && ` 마지막 동기화: ${connectionStatus.lastSync.toLocaleTimeString()}`}
+            </p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* 콘텐츠 영역 */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="질문 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#8800ff] focus:border-transparent"
+            />
+          </div>
+
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#8800ff] focus:border-transparent"
+          >
+            <option value="all">모든 타입</option>
+            <option value="text">텍스트</option>
+            <option value="textarea">텍스트영역</option>
+            <option value="select">선택</option>
+          </select>
+        </div>
+
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -332,122 +391,70 @@ export default function QuestionsManagement() {
             items={filteredQuestions.map(q => q.step)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="grid gap-4 max-w-4xl mx-auto">
-              <AnimatePresence mode="popLayout">
-                {filteredQuestions.map((question, index) => (
-                  <SortableQuestionCard
-                    key={question.step}
-                    question={question}
-                    index={index}
-                    isFirst={index === 0}
-                    isLast={index === filteredQuestions.length - 1}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onMoveUp={handleMoveUp}
-                    onMoveDown={handleMoveDown}
-                    onToggleActive={handleToggleActive}
-                  />
-                ))}
-              </AnimatePresence>
+            <div className="space-y-4">
+              {filteredQuestions.map((question, index) => (
+                <SortableQuestionCard
+                  key={question.step}
+                  question={question}
+                  index={index}
+                  isFirst={index === 0}
+                  isLast={index === filteredQuestions.length - 1}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onMoveUp={handleMoveUp}
+                  onMoveDown={handleMoveDown}
+                  onToggleActive={handleToggleActive}
+                />
+              ))}
             </div>
           </SortableContext>
         </DndContext>
 
-        {/* 빈 상태 */}
         {filteredQuestions.length === 0 && (
           <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
-              <Settings className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              {searchQuery || filterType !== 'all' ? '검색 결과가 없습니다' : '질문이 없습니다'}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-gray-500 dark:text-gray-400">
               {searchQuery || filterType !== 'all'
-                ? '다른 검색어를 시도해보세요'
-                : '첫 번째 질문을 추가하여 챗봇 플로우를 시작하세요'}
+                ? '검색 결과가 없습니다.'
+                : '질문이 없습니다. 새로운 질문을 추가해주세요.'}
             </p>
-            {!searchQuery && filterType === 'all' && (
-              <button
-                onClick={handleAddQuestion}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                첫 질문 추가하기
-              </button>
-            )}
           </div>
         )}
       </div>
 
-      {/* 하단 정보 */}
-      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="text-gray-500 dark:text-gray-400">전체 질문</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{questions.length}</div>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="text-gray-500 dark:text-gray-400">활성 질문</div>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {questions.filter(q => q.is_active).length}
-              </div>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="text-gray-500 dark:text-gray-400">비활성 질문</div>
-              <div className="text-2xl font-bold text-gray-500 dark:text-gray-400">
-                {questions.filter(q => !q.is_active).length}
-              </div>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="text-gray-500 dark:text-gray-400">평균 단계</div>
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {questions.filter(q => q.is_active).length}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <h3 className="font-medium text-blue-900 dark:text-blue-300 mb-2">💡 사용 팁</h3>
-            <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-400">
-              <li>• 질문을 드래그하여 순서를 변경할 수 있습니다</li>
-              <li>• 모든 변경사항은 실시간으로 챗봇에 반영됩니다</li>
-              <li>• 미리보기 기능으로 실제 챗봇 플로우를 테스트해보세요</li>
-              <li>• 데이터베이스 상태 표시기로 저장 상태를 확인할 수 있습니다</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* 모달들 */}
-      <QuestionEditModal
-        question={editingQuestion}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveEdit}
-        existingSteps={questions.map(q => q.step)}
-      />
-
-      <ChatPreview
-        questions={questions.filter(q => q.is_active)}
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-      />
-
-      {/* 성공 메시지 */}
       <AnimatePresence>
         {showSuccessMessage && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-4 right-4 px-4 py-2 bg-green-500 text-white rounded-lg shadow-lg flex items-center gap-2 z-50"
+            className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2"
           >
-            <Save className="w-4 h-4" />
-            저장되었습니다
+            <Save className="w-5 h-5" />
+            저장되었습니다!
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isEditModalOpen && (
+        <QuestionEditModal
+          question={editingQuestion}
+          onSave={(q) => {
+            if (editingQuestion) {
+              handleSaveEdit(q);
+            } else {
+              const newQuestions = [...questions, { ...q, order_index: questions.length }];
+              setQuestions(newQuestions);
+              saveQuestions(newQuestions);
+            }
+            setIsEditModalOpen(false);
+          }}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
+
+      {isPreviewOpen && (
+        <ChatPreview onClose={() => setIsPreviewOpen(false)} />
+      )}
     </div>
   );
 }
