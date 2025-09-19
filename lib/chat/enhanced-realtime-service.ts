@@ -79,10 +79,10 @@ export class EnhancedRealtimeService {
     console.log('[EnhancedRealtimeService] Supabase config:', config ? 'Found' : 'Not found');
 
     if (!config) {
-      console.warn('[EnhancedRealtimeService] Supabase configuration not found, using localStorage');
+      console.warn('[EnhancedRealtimeService] Supabase configuration not found, using default questions');
       this.updateStatus({ state: 'disconnected', isSupabaseEnabled: false });
-      // 로커 데이터 로드
-      this.questionsCache = this.loadFromLocalStorage();
+      // 기본 질문 로드
+      this.questionsCache = this.getDefaultQuestions();
       this.notifyListeners();
       return;
     }
@@ -105,8 +105,8 @@ export class EnhancedRealtimeService {
     } catch (error) {
       console.error('[EnhancedRealtimeService] Failed to initialize Supabase:', error);
       this.updateStatus({ state: 'error', errorCount: this.status.errorCount + 1 });
-      // 에러 시 로컨 데이터 로드
-      this.questionsCache = this.loadFromLocalStorage();
+      // 에러 시 기본 질문 로드
+      this.questionsCache = this.getDefaultQuestions();
       this.notifyListeners();
       this.scheduleReconnect();
     }
@@ -237,8 +237,8 @@ export class EnhancedRealtimeService {
 
     // \ub370\uc774\ud130\uac00 \uc5c6\uc73c\uba74 \uae30\ubcf8 \uc9c8\ubb38 \ub85c\ub4dc
     if (this.questionsCache.length === 0) {
-      console.log('[EnhancedRealtimeService] No data from Supabase, loading from localStorage or defaults');
-      this.questionsCache = this.loadFromLocalStorage();
+      console.log('[EnhancedRealtimeService] No data from Supabase, loading default questions');
+      this.questionsCache = this.getDefaultQuestions();
     }
 
     this.notifyListeners();
@@ -246,8 +246,8 @@ export class EnhancedRealtimeService {
 
   async saveQuestions(questions: ChatQuestion[]): Promise<boolean> {
     if (!this.supabase || !this.status.isSupabaseEnabled) {
-      this.saveToLocalStorage(questions);
-      return true;
+      console.warn('[EnhancedRealtimeService] Supabase not available, cannot save questions');
+      return false;
     }
 
     this.lastUpdateSource = 'local';
@@ -276,7 +276,6 @@ export class EnhancedRealtimeService {
 
       if (insertError) {
         console.error('[EnhancedRealtimeService] Insert error:', insertError);
-        this.saveToLocalStorage(questions);
         return false;
       }
 
@@ -292,7 +291,6 @@ export class EnhancedRealtimeService {
 
     } catch (error) {
       console.error('[EnhancedRealtimeService] Save error:', error);
-      this.saveToLocalStorage(questions);
       return false;
     }
   }
@@ -303,11 +301,8 @@ export class EnhancedRealtimeService {
     }
 
     // \uce90\uc2dc\uac00 \ube44\uc5b4\uc788\uc73c\uba74 localStorage\uc5d0\uc11c \ub85c\ub4dc
-    const questions = this.loadFromLocalStorage();
-    if (questions.length > 0) {
-      this.questionsCache = questions;
-    }
-    return questions;
+    this.questionsCache = this.getDefaultQuestions();
+    return this.questionsCache;
   }
 
   getActiveQuestions(): ChatQuestion[] {
@@ -363,8 +358,7 @@ export class EnhancedRealtimeService {
 
   getTotalSteps(): number {
     const activeQuestions = this.getActiveQuestions();
-    const hasPhone = activeQuestions.some(q => q.step === 'phone');
-    return activeQuestions.length + (hasPhone ? 1 : 0);
+    return activeQuestions.length;
   }
 
   private getInputType(question: ChatQuestion): string {
@@ -495,32 +489,6 @@ export class EnhancedRealtimeService {
     }
   }
 
-  private saveToLocalStorage(questions: ChatQuestion[]): void {
-    if (typeof window === 'undefined') return;
-
-    try {
-      localStorage.setItem('chat_questions', JSON.stringify(questions));
-      window.dispatchEvent(new Event('questionsUpdated'));
-    } catch (error) {
-      console.error('[EnhancedRealtimeService] localStorage save error:', error);
-    }
-  }
-
-  private loadFromLocalStorage(): ChatQuestion[] {
-    if (typeof window === 'undefined') {
-      return this.getDefaultQuestions();
-    }
-
-    try {
-      const stored = localStorage.getItem('chat_questions');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.error('[EnhancedRealtimeService] localStorage load error:', error);
-    }
-    return this.getDefaultQuestions();
-  }
 
   private getDefaultQuestions(): ChatQuestion[] {
     return [
