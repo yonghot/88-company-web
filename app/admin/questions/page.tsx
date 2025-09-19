@@ -121,6 +121,15 @@ export default function EnhancedQuestionsManagement() {
   );
 
   useEffect(() => {
+    console.log('[Admin] Initializing questions page...');
+
+    // 즉시 현재 질문 로드
+    const currentQuestions = enhancedRealtimeService.getQuestions();
+    if (currentQuestions.length > 0) {
+      console.log('[Admin] Initial questions loaded:', currentQuestions.length);
+      setQuestions(currentQuestions);
+    }
+
     const unsubscribeQuestions = enhancedRealtimeService.subscribeToQuestions((updatedQuestions) => {
       console.log('[Admin] Questions updated:', updatedQuestions.length);
       setQuestions(updatedQuestions);
@@ -131,7 +140,10 @@ export default function EnhancedQuestionsManagement() {
       setConnectionStatus(status);
     });
 
-    enhancedRealtimeService.forceRefresh();
+    // 비동기로 최신 데이터 로드
+    enhancedRealtimeService.forceRefresh().then(() => {
+      console.log('[Admin] Force refresh completed');
+    });
 
     return () => {
       unsubscribeQuestions();

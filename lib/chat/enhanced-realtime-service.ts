@@ -44,28 +44,51 @@ export class EnhancedRealtimeService {
   private pendingUpdates: ChatQuestion[] | null = null;
 
   private constructor() {
-    this.initializeSupabase();
+    // 브라우저 환경에서만 초기화
+    if (typeof window !== 'undefined') {
+      // DOM이 로드된 후 초기화
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          this.initializeSupabase();
+        });
+      } else {
+        // 이미 로드됨
+        this.initializeSupabase();
+      }
+    }
   }
 
   static getInstance(): EnhancedRealtimeService {
     if (!this.instance) {
       this.instance = new EnhancedRealtimeService();
     }
+    // 인스턴스가 있지만 초기화되지 않은 경우
+    if (typeof window !== 'undefined' && !this.instance.supabase && !this.instance.questionsCache.length) {
+      this.instance.initializeSupabase();
+    }
     return this.instance;
   }
 
   private initializeSupabase(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      console.log('[EnhancedRealtimeService] Server-side environment, skipping Supabase init');
+      return;
+    }
 
     const config = this.getSupabaseConfig();
+    console.log('[EnhancedRealtimeService] Supabase config:', config ? 'Found' : 'Not found');
 
     if (!config) {
       console.warn('[EnhancedRealtimeService] Supabase configuration not found, using localStorage');
       this.updateStatus({ state: 'disconnected', isSupabaseEnabled: false });
+      // 로커 데이터 로드
+      this.questionsCache = this.loadFromLocalStorage();
+      this.notifyListeners();
       return;
     }
 
     try {
+      console.log('[EnhancedRealtimeService] Creating Supabase client...');
       this.supabase = createClient(config.url, config.key, {
         realtime: {
           params: {
@@ -74,6 +97,7 @@ export class EnhancedRealtimeService {
         }
       });
 
+      console.log('[EnhancedRealtimeService] Supabase client created successfully');
       this.updateStatus({ state: 'connecting', isSupabaseEnabled: true });
       this.setupRealtimeSubscription();
       this.loadInitialData();
@@ -81,6 +105,9 @@ export class EnhancedRealtimeService {
     } catch (error) {
       console.error('[EnhancedRealtimeService] Failed to initialize Supabase:', error);
       this.updateStatus({ state: 'error', errorCount: this.status.errorCount + 1 });
+      // 에러 시 로컨 데이터 로드
+      this.questionsCache = this.loadFromLocalStorage();
+      this.notifyListeners();
       this.scheduleReconnect();
     }
   }
@@ -88,15 +115,15 @@ export class EnhancedRealtimeService {
   private getSupabaseConfig(): RealtimeConfig | null {
     if (typeof window === 'undefined') return null;
 
-    const url = (window as any).ENV?.NEXT_PUBLIC_SUPABASE_URL ||
-                process.env.NEXT_PUBLIC_SUPABASE_URL ||
-                'https://tjizerpeyteokqhufqea.supabase.co';
+    // Next.js 환경변수는 빌드 시점에 주입되므로 하드코딩된 값 사용
+    // 이 값들은 .env.local에 설정된 값과 동일함
+    const url = 'https://tjizerpeyteokqhufqea.supabase.co';
+    const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaXplcnBleXRlb2txaHVmcWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2ODkxMTEsImV4cCI6MjA3MzI2NTExMX0.lpw_F9T7tML76NyCm1_6NJ6kyFdXtYsoUehK9ZhZT7s';
 
-    const key = (window as any).ENV?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaXplcnBleXRlb2txaHVmcWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2ODkxMTEsImV4cCI6MjA3MzI2NTExMX0.lpw_F9T7tML76NyCm1_6NJ6kyFdXtYsoUehK9ZhZT7s';
+    console.log('[EnhancedRealtimeService] Using Supabase config:', { url: url.substring(0, 30) + '...', key: key.substring(0, 20) + '...' });
 
     if (!url || !key || url.includes('placeholder') || url.includes('your_')) {
+      console.warn('[EnhancedRealtimeService] Invalid Supabase configuration');
       return null;
     }
 
@@ -170,9 +197,13 @@ export class EnhancedRealtimeService {
   }
 
   private async loadFromDatabase(): Promise<void> {
-    if (!this.supabase) return;
+    if (!this.supabase) {
+      console.warn('[EnhancedRealtimeService] Supabase client not initialized');
+      return;
+    }
 
     try {
+      console.log('[EnhancedRealtimeService] Loading questions from database...');
       const { data, error } = await this.supabase
         .from('chat_questions')
         .select('*')
@@ -186,12 +217,17 @@ export class EnhancedRealtimeService {
 
       if (data && data.length > 0) {
         this.questionsCache = data;
-        console.log('[EnhancedRealtimeService] Loaded', data.length, 'questions');
+        console.log('[EnhancedRealtimeService] Successfully loaded', data.length, 'questions from database');
+      } else {
+        console.log('[EnhancedRealtimeService] No questions found in database, using defaults');
+        this.questionsCache = this.getDefaultQuestions();
       }
 
     } catch (error) {
       console.error('[EnhancedRealtimeService] Database error:', error);
       this.updateStatus({ state: 'error', errorCount: this.status.errorCount + 1 });
+      // 에러 시 기본 질문 사용
+      this.questionsCache = this.getDefaultQuestions();
     }
   }
 
@@ -549,6 +585,15 @@ export class EnhancedRealtimeService {
   }
 
   async forceRefresh(): Promise<void> {
+    console.log('[EnhancedRealtimeService] Force refresh requested');
+
+    // Supabase가 없으면 초기화 시도
+    if (!this.supabase && typeof window !== 'undefined') {
+      this.initializeSupabase();
+      // 초기화 완료 대기
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
     await this.loadFromDatabase();
     this.notifyListeners();
   }
