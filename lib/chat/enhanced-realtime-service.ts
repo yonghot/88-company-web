@@ -378,8 +378,11 @@ export class EnhancedRealtimeService {
   private getValidation(question: ChatQuestion): ((value: string) => boolean) | undefined {
     if (question.step === 'phone') {
       return (value: string) => {
-        const phoneRegex = /^(01[0-9]{1})-?([0-9]{3,4})-?([0-9]{4})$/;
-        return phoneRegex.test(value.replace(/-/g, ''));
+        // 모든 공백과 하이픈 제거
+        const cleanedValue = value.replace(/[\s-]/g, '');
+        // 한국 휴대폰 번호 형식 검증 (010, 011, 016, 017, 018, 019) - 11자리만 허용
+        const phoneRegex = /^01[0-9]{9}$/;
+        return phoneRegex.test(cleanedValue);
       };
     }
 

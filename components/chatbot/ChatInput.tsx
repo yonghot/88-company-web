@@ -16,6 +16,47 @@ interface ChatInputProps {
 export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [selectedOption, setSelectedOption] = useState('');
+  const [isPhoneValid, setIsPhoneValid] = useState<boolean | null>(null);
+
+  // 전화번호 자동 포맷팅 함수
+  const formatPhoneNumber = (value: string) => {
+    // 숫자만 추출
+    const numbers = value.replace(/\D/g, '');
+
+    // 11자리일 경우 자동으로 하이픈 추가
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else if (numbers.length <= 11) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    }
+
+    // 11자리 초과 시 잘라내기
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  };
+
+  // 전화번호 유효성 검사 함수
+  const validatePhoneNumber = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.length === 11 && numbers.startsWith('01');
+  };
+
+  const handlePhoneInputChange = (value: string) => {
+    if (currentStep.inputType === 'phone') {
+      const formatted = formatPhoneNumber(value);
+      setInputValue(formatted);
+
+      // 실시간 유효성 검사
+      if (value.length > 0) {
+        setIsPhoneValid(validatePhoneNumber(formatted));
+      } else {
+        setIsPhoneValid(null);
+      }
+    } else {
+      setInputValue(value);
+    }
+  };
 
   const handleSubmit = () => {
     const value = currentStep.inputType === 'select' ? selectedOption : inputValue;
@@ -120,13 +161,14 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
       <div className="max-w-2xl mx-auto">
         <div className="relative">
           <Input
-            type={currentStep.inputType === 'email' ? 'email' : 
+            type={currentStep.inputType === 'email' ? 'email' :
                   currentStep.inputType === 'phone' ? 'tel' : 'text'}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => handlePhoneInputChange(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={currentStep.placeholder}
             disabled={disabled}
+            maxLength={currentStep.inputType === 'phone' ? 13 : undefined}
             className={cn(
               'w-full px-4 py-3 pr-12',
               'bg-[#252B3B] border border-[#2E3544] rounded-xl',
@@ -149,13 +191,23 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          {currentStep.inputType === 'phone'
-            ? '예: 010-1234-5678'
-            : currentStep.inputType === 'email'
-            ? '예: example@email.com'
-            : 'Enter키를 눌러 전송하세요'}
-        </p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-xs text-gray-500">
+            {currentStep.inputType === 'phone'
+              ? '예: 010-1234-5678'
+              : currentStep.inputType === 'email'
+              ? '예: example@email.com'
+              : 'Enter키를 눌러 전송하세요'}
+          </p>
+          {currentStep.inputType === 'phone' && isPhoneValid !== null && (
+            <span className={cn(
+              "text-xs font-medium",
+              isPhoneValid ? "text-green-500" : "text-amber-500"
+            )}>
+              {isPhoneValid ? "✅ 올바른 형식" : "⚠️ 숫자를 더 입력해주세요"}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

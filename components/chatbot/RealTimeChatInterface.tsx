@@ -84,10 +84,17 @@ export function RealTimeChatInterface() {
 
     // 입력 검증
     if (currentStep.validation && !currentStep.validation(value)) {
+      let errorContent = '입력하신 정보가 올바르지 않습니다. 다시 확인해주세요.';
+
+      // 전화번호 검증 실패 시 더 구체적인 메시지
+      if (chatState.currentStep === 'phone') {
+        errorContent = '📱 올바른 휴대폰 번호 형식이 아닙니다.\n\n올바른 형식 예시:\n• 010-1234-5678\n• 01012345678\n• 010 1234 5678\n\n다시 입력해주세요.';
+      }
+
       const errorMessage: Message = {
         id: uuidv4(),
         type: 'bot',
-        content: '입력하신 정보가 올바르지 않습니다. 다시 확인해주세요.',
+        content: errorContent,
         timestamp: new Date()
       };
       setChatState(prev => ({
