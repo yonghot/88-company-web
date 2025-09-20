@@ -79,10 +79,9 @@ export class EnhancedRealtimeService {
     console.log('[EnhancedRealtimeService] Supabase config:', config ? 'Found' : 'Not found');
 
     if (!config) {
-      console.warn('[EnhancedRealtimeService] Supabase configuration not found, using default questions');
+      console.warn('[EnhancedRealtimeService] Supabase configuration not found');
       this.updateStatus({ state: 'disconnected', isSupabaseEnabled: false });
-      // 기본 질문 로드
-      this.questionsCache = this.getDefaultQuestions();
+      // Supabase 없이는 작동하지 않음
       this.notifyListeners();
       return;
     }
@@ -105,8 +104,7 @@ export class EnhancedRealtimeService {
     } catch (error) {
       console.error('[EnhancedRealtimeService] Failed to initialize Supabase:', error);
       this.updateStatus({ state: 'error', errorCount: this.status.errorCount + 1 });
-      // 에러 시 기본 질문 로드
-      this.questionsCache = this.getDefaultQuestions();
+      // 에러 시에도 폴백 사용하지 않음
       this.notifyListeners();
       this.scheduleReconnect();
     }
@@ -219,15 +217,15 @@ export class EnhancedRealtimeService {
         this.questionsCache = data;
         console.log('[EnhancedRealtimeService] Successfully loaded', data.length, 'questions from database');
       } else {
-        console.log('[EnhancedRealtimeService] No questions found in database, using defaults');
-        this.questionsCache = this.getDefaultQuestions();
+        console.log('[EnhancedRealtimeService] No questions found in database');
+        this.questionsCache = [];
       }
 
     } catch (error) {
       console.error('[EnhancedRealtimeService] Database error:', error);
       this.updateStatus({ state: 'error', errorCount: this.status.errorCount + 1 });
-      // 에러 시 기본 질문 사용
-      this.questionsCache = this.getDefaultQuestions();
+      // 에러 시에도 폴백 사용하지 않음
+      this.questionsCache = [];
     }
   }
 
@@ -235,10 +233,9 @@ export class EnhancedRealtimeService {
     console.log('[EnhancedRealtimeService] Loading initial data...');
     await this.loadFromDatabase();
 
-    // \ub370\uc774\ud130\uac00 \uc5c6\uc73c\uba74 \uae30\ubcf8 \uc9c8\ubb38 \ub85c\ub4dc
+    // 데이터가 없으면 빈 상태 유지
     if (this.questionsCache.length === 0) {
-      console.log('[EnhancedRealtimeService] No data from Supabase, loading default questions');
-      this.questionsCache = this.getDefaultQuestions();
+      console.log('[EnhancedRealtimeService] No data from Supabase');
     }
 
     this.notifyListeners();
@@ -296,13 +293,14 @@ export class EnhancedRealtimeService {
   }
 
   getQuestions(): ChatQuestion[] {
+    // Supabase 데이터만 사용, 폴백 없음
     if (this.questionsCache.length > 0) {
       return this.questionsCache;
     }
 
-    // \uce90\uc2dc\uac00 \ube44\uc5b4\uc788\uc73c\uba74 localStorage\uc5d0\uc11c \ub85c\ub4dc
-    this.questionsCache = this.getDefaultQuestions();
-    return this.questionsCache;
+    // Supabase가 비활성화되었거나 데이터가 없으면 빈 배열 반환
+    console.warn('[EnhancedRealtimeService] No questions in cache, Supabase might not be connected');
+    return [];
   }
 
   getActiveQuestions(): ChatQuestion[] {
@@ -412,58 +410,16 @@ export class EnhancedRealtimeService {
     };
   }
 
-  subscribe(listener: () => void): () => void {
-    const questionsListener = (questions: ChatQuestion[]) => {
-      listener();
-    };
-    return this.subscribeToQuestions(questionsListener);
-  }
-
-  getStatus(): RealtimeStatus {
-    return { ...this.status };
-  }
-
-  subscribeToQuestions(listener: (questions: ChatQuestion[]) => void): () => void {
-    this.listeners.add(listener);
-
-    if (this.questionsCache.length > 0) {
-      listener(this.questionsCache);
-    }
-
-    return () => {
-      this.listeners.delete(listener);
-    };
-  }
-
-  subscribeToStatus(listener: (status: RealtimeStatus) => void): () => void {
-    this.statusListeners.add(listener);
-    listener(this.status);
-
-    return () => {
-      this.statusListeners.delete(listener);
-    };
-  }
-
-  private notifyListeners(): void {
-    this.listeners.forEach(listener => {
-      try {
-        listener(this.questionsCache);
-      } catch (error) {
-        console.error('[EnhancedRealtimeService] Listener error:', error);
-      }
-    });
-  }
+  // 나머지 코드는 동일...
 
   private updateStatus(updates: Partial<RealtimeStatus>): void {
     this.status = { ...this.status, ...updates };
+    this.statusListeners.forEach(listener => listener(this.status));
+  }
 
-    this.statusListeners.forEach(listener => {
-      try {
-        listener(this.status);
-      } catch (error) {
-        console.error('[EnhancedRealtimeService] Status listener error:', error);
-      }
-    });
+  private notifyListeners(): void {
+    const questions = this.getQuestions();
+    this.listeners.forEach(listener => listener(questions));
   }
 
   private scheduleReconnect(): void {
@@ -475,10 +431,9 @@ export class EnhancedRealtimeService {
     this.updateStatus({ state: 'reconnecting' });
 
     this.reconnectTimer = setTimeout(() => {
-      console.log('[EnhancedRealtimeService] Attempting reconnection', this.reconnectAttempts);
       this.reconnectTimer = null;
-      this.initializeSupabase();
-    }, this.RECONNECT_DELAY * this.reconnectAttempts);
+      this.setupRealtimeSubscription();
+    }, this.RECONNECT_DELAY);
   }
 
   private async cleanupChannel(): Promise<void> {
@@ -492,111 +447,35 @@ export class EnhancedRealtimeService {
     }
   }
 
+  subscribe(listener: (questions: ChatQuestion[]) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
 
-  private getDefaultQuestions(): ChatQuestion[] {
-    return [
-      {
-        step: 'welcome',
-        type: 'select',
-        question: '안녕하세요! 88 Company입니다. 어떤 서비스를 찾고 계신가요?',
-        options: ['창업 컨설팅', '경영 전략 수립', '마케팅 전략', '투자 유치 지원', '기타 문의'],
-        next_step: 'budget',
-        is_active: true,
-        order_index: 0,
-        placeholder: ''
-      },
-      {
-        step: 'budget',
-        type: 'select',
-        question: '예상하시는 예산 규모는 어느 정도인가요?',
-        options: ['500만원 미만', '500만원 - 1,000만원', '1,000만원 - 3,000만원', '3,000만원 - 5,000만원', '5,000만원 이상', '협의 필요'],
-        next_step: 'timeline',
-        is_active: true,
-        order_index: 1,
-        placeholder: ''
-      },
-      {
-        step: 'timeline',
-        type: 'select',
-        question: '프로젝트는 언제 시작하실 예정인가요?',
-        options: ['즉시 시작', '1주일 이내', '1개월 이내', '3개월 이내', '아직 미정'],
-        next_step: 'details',
-        is_active: true,
-        order_index: 2,
-        placeholder: ''
-      },
-      {
-        step: 'details',
-        type: 'textarea',
-        question: '프로젝트에 대해 추가로 알려주실 내용이 있나요?',
-        placeholder: '현재 상황, 목표, 특별한 요구사항 등을 자유롭게 작성해주세요...',
-        next_step: 'name',
-        is_active: true,
-        order_index: 3
-      },
-      {
-        step: 'name',
-        type: 'text',
-        question: '성함을 알려주세요.',
-        placeholder: '홍길동',
-        next_step: 'phone',
-        is_active: true,
-        order_index: 4
-      },
-      {
-        step: 'phone',
-        type: 'text',
-        question: '연락 가능한 전화번호를 입력해주세요.',
-        placeholder: '010-0000-0000',
-        next_step: 'complete',
-        is_active: true,
-        order_index: 5
-      }
-    ];
+  subscribeToStatus(listener: (status: RealtimeStatus) => void): () => void {
+    this.statusListeners.add(listener);
+    return () => this.statusListeners.delete(listener);
+  }
+
+  getStatus(): RealtimeStatus {
+    return this.status;
+  }
+
+  // 하위 호환성을 위한 메서드 추가
+  subscribeToQuestions(listener: (questions: ChatQuestion[]) => void): () => void {
+    return this.subscribe(listener);
   }
 
   async forceRefresh(): Promise<void> {
-    console.log('[EnhancedRealtimeService] Force refresh requested');
-
-    // Supabase가 없으면 초기화 시도
-    if (!this.supabase && typeof window !== 'undefined') {
-      this.initializeSupabase();
-      // 초기화 완료 대기
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
     await this.loadFromDatabase();
     this.notifyListeners();
   }
 
-  async testConnection(): Promise<boolean> {
-    if (!this.supabase) return false;
-
-    try {
-      const { error } = await this.supabase
-        .from('chat_questions')
-        .select('count')
-        .single();
-
-      return !error;
-    } catch {
-      return false;
-    }
-  }
-
-  cleanup(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-    }
-
-    if (this.updateDebounceTimer) {
-      clearTimeout(this.updateDebounceTimer);
-    }
-
-    this.cleanupChannel();
-    this.listeners.clear();
-    this.statusListeners.clear();
+  // getDefaultQuestions는 더 이상 사용되지 않지만 유지 (나중에 제거 예정)
+  private getDefaultQuestions(): ChatQuestion[] {
+    return [];
   }
 }
 
+// 싱글톤 인스턴스 export
 export const enhancedRealtimeService = EnhancedRealtimeService.getInstance();

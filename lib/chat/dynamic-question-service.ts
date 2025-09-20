@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatQuestion, ChatFlow, ChatQuestionHistory, DynamicQuestionService, QuestionCache, CACHE_TTL } from './dynamic-types';
 import { chatQuestions as staticQuestions } from './questions';
-import { ClientStorage } from '@/lib/storage/client-storage';
+// import { ClientStorage } from '@/lib/storage/client-storage'; // localStorage 사용 중지
 
 class QuestionCacheImpl implements QuestionCache {
   questions: Map<string, ChatQuestion> | null = null;
@@ -104,32 +104,12 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
     }
 
     if (this.useStaticFallback || !this.supabase) {
-      // 클라이언트 사이드에서는 localStorage 사용
-      if (typeof window !== 'undefined') {
-        const localQuestions = ClientStorage.loadQuestions();
-        // localStorage 데이터가 불완전하면 무시하고 정적 플로우 사용
-        // 필수 스텝이 하나라도 빠지면 정적 플로우 사용
-        const requiredSteps = ['welcome', 'budget', 'timeline', 'details', 'name', 'phone'];
-        const hasAllRequired = localQuestions && localQuestions.length > 0 &&
-          requiredSteps.every(step => localQuestions.some(q => q.step === step));
-
-        if (hasAllRequired) {
-          const questionsMap = new Map<string, ChatQuestion>();
-          localQuestions.forEach(q => questionsMap.set(q.step, q));
-          this.cache.questions = questionsMap;
-          this.cache.lastFetch = new Date();
-          return questionsMap;
-        }
-      }
-
-      // 서버 사이드에서는 API 또는 static 사용
-      const fileQuestions = await this.loadQuestionsFromAPI();
-      if (fileQuestions && fileQuestions.size > 0) {
-        this.cache.questions = fileQuestions;
-        this.cache.lastFetch = new Date();
-        return fileQuestions;
-      }
-      return this.convertStaticToMap();
+      // localStorage 사용하지 않음 - Supabase가 없으면 빈 맵 반환
+      console.warn('[DynamicQuestionService] Supabase not available, returning empty map');
+      const emptyMap = new Map<string, ChatQuestion>();
+      this.cache.questions = emptyMap;
+      this.cache.lastFetch = new Date();
+      return emptyMap;
     }
 
     try {
@@ -210,7 +190,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
       // 클라이언트 사이드에서는 localStorage에 저장
       if (typeof window !== 'undefined') {
-        ClientStorage.addQuestion(question);
+        // ClientStorage.addQuestion(question); // localStorage 사용 중지
       } else {
         await this.saveQuestionsToAPI(questions);
       }
@@ -247,7 +227,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
       // 클라이언트 사이드에서는 localStorage에 저장
       if (typeof window !== 'undefined') {
-        ClientStorage.updateQuestion(step, updates);
+        // ClientStorage.updateQuestion(step, updates); // localStorage 사용 중지
       } else {
         await this.saveQuestionsToAPI(questions);
       }
@@ -289,7 +269,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
       // 클라이언트 사이드에서는 localStorage에서 삭제
       if (typeof window !== 'undefined') {
-        ClientStorage.deleteQuestion(step);
+        // ClientStorage.deleteQuestion(step); // localStorage 사용 중지
       } else {
         await this.saveQuestionsToAPI(questions);
       }
@@ -337,7 +317,7 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
         // 클라이언트 사이드에서는 localStorage에 저장
         if (typeof window !== 'undefined') {
-          ClientStorage.reorderQuestions(steps);
+          // ClientStorage.reorderQuestions(steps); // localStorage 사용 중지
         } else {
           // 서버 사이드에서는 API로 저장
           await this.saveQuestionsToAPI(reorderedMap);
