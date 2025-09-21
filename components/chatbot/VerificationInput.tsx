@@ -171,7 +171,6 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
     } else {
       // 형식이 올바르지 않으면 에러 메시지 표시
       setError('올바른 휴대폰 번호 형식이 아닙니다.');
-      setCodeSent(false);
     }
   }, [phoneNumber]);
 
