@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { realTimeQuestionService } from '../lib/chat/real-time-question-service';
+import { enhancedRealtimeService } from '../lib/chat/enhanced-realtime-service';
 import { ChatQuestion } from '../lib/chat/dynamic-types';
 import chalk from 'chalk';
 
@@ -35,7 +35,7 @@ class UIComponentTester {
     const testName = 'QuestionCard 렌더링';
     try {
       // QuestionCard 컴포넌트 렌더링 체크
-      const questions = realTimeQuestionService.getAllQuestions();
+      const questions = enhancedRealtimeService.getQuestions();
 
       if (questions.length === 0) {
         throw new Error('테스트할 질문이 없습니다');
@@ -65,7 +65,7 @@ class UIComponentTester {
     const testName = '드래그 앤 드롭 기능';
     try {
       // 드래그 앤 드롭 시뮬레이션
-      const questions = realTimeQuestionService.getAllQuestions();
+      const questions = enhancedRealtimeService.getQuestions();
 
       if (questions.length < 2) {
         throw new Error('드래그 앤 드롭 테스트를 위한 충분한 질문이 없습니다');
@@ -103,18 +103,18 @@ class UIComponentTester {
       let syncTriggered = false;
 
       // 리스너 등록
-      const unsubscribe = realTimeQuestionService.subscribe(() => {
+      const unsubscribe = enhancedRealtimeService.subscribe(() => {
         syncTriggered = true;
       });
 
       // 질문 업데이트 시뮬레이션
-      const questions = realTimeQuestionService.getAllQuestions();
+      const questions = enhancedRealtimeService.getQuestions();
       if (questions.length > 0) {
         const testQuestion = { ...questions[0] };
         testQuestion.question = `테스트 업데이트 - ${Date.now()}`;
 
         // 업데이트 저장
-        await realTimeQuestionService.saveQuestions(questions);
+        await enhancedRealtimeService.saveQuestions(questions);
       }
 
       // 클린업
@@ -200,7 +200,7 @@ class UIComponentTester {
   private async testPreviewFunctionality() {
     const testName = '미리보기 기능';
     try {
-      const questions = realTimeQuestionService.getAllQuestions();
+      const questions = enhancedRealtimeService.getQuestions();
       const activeQuestions = questions.filter(q => q.is_active);
 
       if (activeQuestions.length === 0) {
@@ -243,7 +243,7 @@ class UIComponentTester {
   private async testSearchAndFilter() {
     const testName = '검색 및 필터링';
     try {
-      const questions = realTimeQuestionService.getAllQuestions();
+      const questions = enhancedRealtimeService.getQuestions();
 
       // 검색 시뮬레이션
       const searchQuery = '예산';
@@ -339,7 +339,7 @@ class UIComponentTester {
       const startTime = Date.now();
 
       // 대량 데이터 처리 시뮬레이션
-      const questions = realTimeQuestionService.getAllQuestions();
+      const questions = enhancedRealtimeService.getQuestions();
 
       // 렌더링 성능 체크
       for (let i = 0; i < 100; i++) {
