@@ -1,0 +1,24 @@
+# Subdirectory with its own Git repository
+88-company-web/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude AI configuration (local only)
+.claude/
+
+# Temporary files
+*.tmp
+*.log
+
+# Node modules (if any)
+node_modules/
+
+# Environment files
+.env
+.env.local
