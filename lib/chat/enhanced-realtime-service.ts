@@ -43,19 +43,30 @@ export class EnhancedRealtimeService {
   private lastUpdateSource: 'local' | 'remote' | null = null;
   private pendingUpdates: ChatQuestion[] | null = null;
 
+  private initPromise: Promise<void> | null = null;
+
   private constructor() {
     // 브라우저 환경에서만 초기화
     if (typeof window !== 'undefined') {
-      // DOM이 로드된 후 초기화
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          this.initializeSupabase();
-        });
-      } else {
-        // 이미 로드됨
-        this.initializeSupabase();
-      }
+      // 초기화를 Promise로 래핑하여 비동기 완료를 추적
+      this.initPromise = new Promise((resolve) => {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => {
+            this.initializeSupabaseWithCallback(resolve);
+          });
+        } else {
+          // 이미 로드됨
+          this.initializeSupabaseWithCallback(resolve);
+        }
+      });
     }
+  }
+
+  private async initializeSupabaseWithCallback(callback: () => void): Promise<void> {
+    await this.initializeSupabase();
+    // 초기 데이터 로드 후 콜백 호출
+    await this.loadInitialData();
+    callback();
   }
 
   static getInstance(): EnhancedRealtimeService {
@@ -69,7 +80,7 @@ export class EnhancedRealtimeService {
     return this.instance;
   }
 
-  private initializeSupabase(): void {
+  private async initializeSupabase(): Promise<void> {
     if (typeof window === 'undefined') {
       console.log('[EnhancedRealtimeService] Server-side environment, skipping Supabase init');
       return;
@@ -99,7 +110,6 @@ export class EnhancedRealtimeService {
       console.log('[EnhancedRealtimeService] Supabase client created successfully');
       this.updateStatus({ state: 'connecting', isSupabaseEnabled: true });
       this.setupRealtimeSubscription();
-      this.loadInitialData();
 
     } catch (error) {
       console.error('[EnhancedRealtimeService] Failed to initialize Supabase:', error);
@@ -308,6 +318,12 @@ export class EnhancedRealtimeService {
     return allQuestions
       .filter(q => q.is_active === true)
       .sort((a, b) => a.order_index - b.order_index);
+  }
+
+  async waitForInitialization(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
   }
 
   getChatFlow(): Record<string, any> {

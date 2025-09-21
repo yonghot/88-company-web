@@ -56,8 +56,13 @@ export function RealTimeChatInterface() {
 
   // 질문 초기 로드 (페이지 로드 시에만)
   useEffect(() => {
-    const loadFlow = () => {
-      console.log('[RealTimeChatInterface] Initial flow loading...');
+    const loadFlow = async () => {
+      console.log('[RealTimeChatInterface] Waiting for service initialization...');
+
+      // Supabase 초기화가 완료될 때까지 대기
+      await enhancedRealtimeService.waitForInitialization();
+
+      console.log('[RealTimeChatInterface] Loading flow from database...');
       const flow = enhancedRealtimeService.getChatFlow();
       const steps = enhancedRealtimeService.getTotalSteps();
 
@@ -67,6 +72,8 @@ export function RealTimeChatInterface() {
       // 첫 로드 시 시작 메시지 표시
       if (Object.keys(flow).length > 0) {
         initializeChat(flow);
+      } else {
+        console.warn('[RealTimeChatInterface] No questions loaded from database');
       }
     };
 
@@ -74,7 +81,7 @@ export function RealTimeChatInterface() {
     loadFlow();
 
     // 클린업: 실시간 구독 및 이벤트 리스너 모두 제거
-  }, []);
+  }, [initializeChat]);
 
   // 챗봇 리셋 처리 제거 (자동 리셋 방지)
 
@@ -297,6 +304,21 @@ export function RealTimeChatInterface() {
               <VerificationInput
                 phoneNumber={phoneNumber}
                 onVerify={handleVerificationComplete}
+                onBack={() => {
+                  setShowVerification(false);
+                  setPhoneNumber('');
+                  // 전화번호 다시 입력 안내 메시지 추가
+                  const retryMessage: Message = {
+                    id: uuidv4(),
+                    type: 'bot',
+                    content: '📱 올바른 휴대폰 번호를 다시 입력해주세요.',
+                    timestamp: new Date()
+                  };
+                  setChatState(prev => ({
+                    ...prev,
+                    messages: [...prev.messages, retryMessage]
+                  }));
+                }}
               />
             )}
           </div>

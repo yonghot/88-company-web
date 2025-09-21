@@ -60,10 +60,21 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
 
   const handleSubmit = () => {
     const value = currentStep.inputType === 'select' ? selectedOption : inputValue;
+
+    // 전화번호 입력일 경우 유효성 검사
+    if (currentStep.inputType === 'phone') {
+      const isValid = validatePhoneNumber(value);
+      if (!isValid) {
+        // 유효하지 않으면 제출하지 않음
+        return;
+      }
+    }
+
     if (value.trim()) {
       onSubmit(value.trim());
       setInputValue('');
       setSelectedOption('');
+      setIsPhoneValid(null);
     }
   };
 
@@ -179,7 +190,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
           />
           <button
             onClick={handleSubmit}
-            disabled={disabled || !inputValue.trim()}
+            disabled={disabled || !inputValue.trim() || (currentStep.inputType === 'phone' && isPhoneValid === false)}
             className={cn(
               'absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg',
               'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
@@ -187,6 +198,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               'disabled:opacity-50 disabled:cursor-not-allowed',
               'transition-all duration-200'
             )}
+            title={currentStep.inputType === 'phone' && isPhoneValid === false ? '올바른 전화번호를 입력해주세요' : ''}
           >
             <Send className="h-4 w-4" />
           </button>

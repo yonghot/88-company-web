@@ -16,10 +16,11 @@ import {
 interface VerificationInputProps {
   phoneNumber: string;
   onVerify: (code: string) => void;
+  onBack?: () => void;  // 뒤로가기 콜백 추가
   disabled?: boolean;
 }
 
-export function VerificationInput({ phoneNumber, onVerify, disabled = false }: VerificationInputProps) {
+export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = false }: VerificationInputProps) {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -159,10 +160,20 @@ export function VerificationInput({ phoneNumber, onVerify, disabled = false }: V
     }
   };
 
-  // Auto-send verification code on mount
+  // Auto-send verification code only if phone number is valid
   useEffect(() => {
-    sendVerificationCode();
-  }, []);
+    // 전화번호 형식 검증 (11자리 한국 휴대폰 번호)
+    const cleaned = phoneNumber.replace(/[^0-9]/g, '');
+    const isValidFormat = /^01[0-9]{9}$/.test(cleaned);
+
+    if (isValidFormat) {
+      sendVerificationCode();
+    } else {
+      // 형식이 올바르지 않으면 에러 메시지 표시
+      setError('올바른 휴대폰 번호 형식이 아닙니다.');
+      setCodeSent(false);
+    }
+  }, [phoneNumber]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -327,10 +338,22 @@ export function VerificationInput({ phoneNumber, onVerify, disabled = false }: V
           {error && (
             <div
               id="error-message"
-              className="flex items-start gap-2 p-3 bg-red-500/10 rounded-xl border border-red-500/30 animate-shake"
+              className="space-y-3"
             >
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-400 leading-tight">{error}</p>
+              <div className="flex items-start gap-2 p-3 bg-red-500/10 rounded-xl border border-red-500/30 animate-shake">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-400 leading-tight">{error}</p>
+              </div>
+
+              {/* 전화번호 형식 오류 시 뒤로가기 버튼 표시 */}
+              {error.includes('올바른 휴대폰 번호') && onBack && (
+                <button
+                  onClick={onBack}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-medium transition-all duration-200"
+                >
+                  ← 전화번호 다시 입력하기
+                </button>
+              )}
             </div>
           )}
 
