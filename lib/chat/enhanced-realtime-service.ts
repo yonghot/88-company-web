@@ -44,6 +44,7 @@ export class EnhancedRealtimeService {
   private pendingUpdates: ChatQuestion[] | null = null;
 
   private initPromise: Promise<void> | null = null;
+  private isReady: boolean = false;  // 초기화 완료 상태 추적
 
   private constructor() {
     // 브라우저 환경에서만 초기화
@@ -66,6 +67,8 @@ export class EnhancedRealtimeService {
     await this.initializeSupabase();
     // 초기 데이터 로드 후 콜백 호출
     await this.loadInitialData();
+    this.isReady = true;  // 초기화 완료 표시
+    console.log('[EnhancedRealtimeService] Initialization complete, isReady = true');
     callback();
   }
 
@@ -93,6 +96,7 @@ export class EnhancedRealtimeService {
       console.warn('[EnhancedRealtimeService] Supabase configuration not found');
       this.updateStatus({ state: 'disconnected', isSupabaseEnabled: false });
       // Supabase 없이는 작동하지 않음
+      this.isReady = true;  // 설정이 없어도 초기화 완료로 표시
       this.notifyListeners();
       return;
     }
@@ -324,6 +328,17 @@ export class EnhancedRealtimeService {
     if (this.initPromise) {
       await this.initPromise;
     }
+  }
+
+  // 초기화가 완료되었는지 확인
+  isInitialized(): boolean {
+    // 서버 사이드에서는 항상 true
+    if (typeof window === 'undefined') {
+      return true;
+    }
+
+    // isReady 플래그로 초기화 완료 여부 확인
+    return this.isReady;
   }
 
   getChatFlow(): Record<string, any> {

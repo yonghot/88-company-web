@@ -10,6 +10,19 @@ async function testDatabaseSync() {
       run: async () => {
         console.log('Supabase 초기화 대기 중...');
         await enhancedRealtimeService.waitForInitialization();
+
+        // 초기화가 실제로 완료되었는지 확인
+        let attempts = 0;
+        while (!enhancedRealtimeService.isInitialized() && attempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+
+        if (!enhancedRealtimeService.isInitialized()) {
+          console.log('❌ 초기화 타임아웃');
+          return false;
+        }
+
         console.log('✅ 초기화 완료');
         return true;
       }

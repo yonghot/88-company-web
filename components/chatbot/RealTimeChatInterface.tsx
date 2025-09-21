@@ -12,8 +12,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
 
 export function RealTimeChatInterface() {
+  const [isInitialized, setIsInitialized] = useState(false); // 초기화 상태 추가
   const [chatState, setChatState] = useState<ChatState>({
-    currentStep: 'welcome',
+    currentStep: '',  // 빈 문자열로 시작
     messages: [],
     leadData: {},
     isCompleted: false
@@ -57,14 +58,32 @@ export function RealTimeChatInterface() {
   // 질문 초기 로드 (페이지 로드 시에만)
   useEffect(() => {
     const loadFlow = async () => {
-      console.log('[RealTimeChatInterface] Waiting for service initialization...');
+      console.log('[RealTimeChatInterface] Starting initialization...');
 
-      // Supabase 초기화가 완료될 때까지 대기
-      await enhancedRealtimeService.waitForInitialization();
+      // 초기화 완료 확인을 위한 폴링 (최대 10초)
+      let attempts = 0;
+      const maxAttempts = 100;  // 100ms * 100 = 10초
 
-      console.log('[RealTimeChatInterface] Loading flow from database...');
+      while (!enhancedRealtimeService.isInitialized() && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (!enhancedRealtimeService.isInitialized()) {
+        console.error('[RealTimeChatInterface] Service initialization timeout');
+        setIsInitialized(true);  // 타임아웃이어도 에러 화면 표시를 위해 설정
+        return;
+      }
+
+      console.log('[RealTimeChatInterface] Service initialized, loading flow...');
+
+      // 서비스가 준비되었으니 데이터 로드
       const flow = enhancedRealtimeService.getChatFlow();
       const steps = enhancedRealtimeService.getTotalSteps();
+
+      console.log('[RealTimeChatInterface] Flow loaded:', Object.keys(flow).length, 'steps');
+      console.log('[RealTimeChatInterface] Total steps:', steps);
+      console.log('[RealTimeChatInterface] Flow keys:', Object.keys(flow));
 
       setChatFlow(flow);
       setTotalSteps(steps);
@@ -72,8 +91,11 @@ export function RealTimeChatInterface() {
       // 첫 로드 시 시작 메시지 표시
       if (Object.keys(flow).length > 0) {
         initializeChat(flow);
+        setIsInitialized(true);  // 초기화 완료 표시
       } else {
         console.warn('[RealTimeChatInterface] No questions loaded from database');
+        // 데이터가 없어도 초기화 완료로 표시 (에러 화면 표시용)
+        setIsInitialized(true);
       }
     };
 
@@ -237,18 +259,21 @@ export function RealTimeChatInterface() {
     return Math.min(userMessageCount, totalSteps);
   };
 
-  const currentStep = chatFlow[chatState.currentStep];
-
-  if (Object.keys(chatFlow).length === 0) {
+  // 초기화가 완료되지 않았거나 데이터가 없으면 로딩 화면 표시
+  if (!isInitialized || Object.keys(chatFlow).length === 0) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-600 animate-pulse" />
-          <p className="text-gray-600 dark:text-gray-400">로딩 중...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            {!isInitialized ? '초기화 중...' : '로딩 중...'}
+          </p>
         </div>
       </div>
     );
   }
+
+  const currentStep = chatFlow[chatState.currentStep];
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
