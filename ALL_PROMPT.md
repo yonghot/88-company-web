@@ -330,6 +330,47 @@ supabase 환경변수 어떻게 설정하지?
 
 ---
 
+### 2025-01-22
+
+#### QA 리포트 기반 개선 요청
+```
+개선 필요한 사항 개선해줘. NHN cloud API 도 .env.local 파일에 설정했어.
+```
+
+#### 코드베이스 클린업 요청
+```
+/sc:cleanup --persona-refactorer --focus architecture --ultrathink --seq --c7
+```
+
+#### Git 커밋 및 푸시 요청
+```
+/sc:git '커밋하고 푸시해줘.' --persona-devops --think --seq --c7
+```
+
+#### NHN Cloud SMS 발송 이슈 트러블슈팅
+```
+nhn cloud의 발신번호 등록이 완료됐는데 인증 문자가 발송이 안되고 있어
+```
+
+#### SMS 테스트 요청
+```
+다 제대로 세팅돼있는것 같은데 테스트 해줘
+```
+
+#### 프로덕션 환경 SMS 발송 문제 해결
+```
+/sc:troubleshoot '여전히 프로덕션 환경에서는 발송이 안되고있어.' --persona-analyzer --ultrathink --seq --c7
+```
+
+#### 프로젝트 문서 통합 업데이트 요청
+```
+/sc:document @CLAUDE.md @PRD.md @ALL_PROMPT.md @DESIGN.md
+"지금까지 작업한 내용을 반영이 '필요'한 모든 .md 파일들에 최신화시켜 줘"
+ --persona-architect --think-hard --seq --c7
+```
+
+---
+
 <!-- 새로운 프롬프트는 아래에 추가됩니다 -->
 
 ---

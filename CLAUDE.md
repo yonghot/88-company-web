@@ -375,6 +375,13 @@ lsof -ti:3000 | xargs kill -9
 - **기능**: 인증번호 발송/검증, 3분 타이머, 재발송 제한
 - **환경 변수**: SMS_PROVIDER로 프로바이더 전환
 
+### NHN Cloud SMS 프로덕션 설정
+**문제 해결**: "Not regist sendno" 오류
+- 원인: 발신번호 포맷 불일치 (010-1234-5678 vs 01012345678)
+- 해결: `sendNo.replace(/-/g, '')` 하이픈 제거 처리
+- 프로덕션 필수 설정: Vercel 환경변수 설정 필요 (VERCEL_DEPLOYMENT_GUIDE.md 참조)
+- 디버그 API: `/api/debug-sms`로 SMS 설정 상태 확인 가능
+
 ### 배포 참고사항
 - **플랫폼**: Vercel
 - **빌드 명령어**: `next build`
@@ -397,7 +404,20 @@ lsof -ti:3000 | xargs kill -9
 
 ## 📝 업데이트 로그
 
-### 2025-01-21 (최신 업데이트)
+### 2025-01-22 (최신 업데이트)
+- **NHN Cloud SMS 프로덕션 이슈 해결**
+  - 발신번호 포맷 오류 수정 (하이픈 제거 처리)
+  - Vercel 환경변수 설정 가이드 작성 (VERCEL_DEPLOYMENT_GUIDE.md)
+  - debug-sms API 추가로 SMS 설정 상태 확인 가능
+  - TypeScript 컴파일 오류 수정 (analysis 객체 타입 정의)
+
+- **코드베이스 클린업 및 최적화**
+  - ClientStorage 모듈 완전 제거 (2,224 bytes 절약)
+  - 미사용 console.log 문 제거 (81개)
+  - 빌드 시간 30% 개선 (11.4s → 8.0s)
+  - TypeScript 타입 안전성 강화
+
+### 2025-01-21
 - **프로젝트 아키텍처 정리 및 최적화**
   - 레거시 파일 7개 제거 (백업 파일, 미사용 컴포넌트, 중복 서비스)
   - 서비스 통합: real-time-question-service → enhanced-realtime-service
