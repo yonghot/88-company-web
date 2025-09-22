@@ -30,6 +30,9 @@ export async function GET() {
       isVercel: !!process.env.VERCEL,
       expectedProvider: process.env.SMS_PROVIDER || 'demo',
       hasNHNConfig: !!(process.env.NHN_APP_KEY && process.env.NHN_SECRET_KEY && process.env.NHN_SEND_NO),
+      serviceInitialized: false as boolean,
+      formattingWorks: false as boolean,
+      initError: undefined as string | undefined,
     },
     timestamp: new Date().toISOString(),
   };
@@ -40,15 +43,15 @@ export async function GET() {
     const service = SMSService.getInstance();
 
     // provider 상태 확인 (private 필드라 직접 접근 불가)
-    debugInfo.analysis['serviceInitialized'] = !!service;
+    debugInfo.analysis.serviceInitialized = !!service;
 
     // 테스트 메시지 생성 시도 (실제 발송은 안 함)
     const testPhone = '01000000000';
     const canFormat = SMSService.formatPhoneNumber(testPhone);
-    debugInfo.analysis['formattingWorks'] = !!canFormat;
+    debugInfo.analysis.formattingWorks = !!canFormat;
 
   } catch (error) {
-    debugInfo.analysis['initError'] = error instanceof Error ? error.message : 'Unknown error';
+    debugInfo.analysis.initError = error instanceof Error ? error.message : 'Unknown error';
   }
 
   return NextResponse.json(debugInfo);
