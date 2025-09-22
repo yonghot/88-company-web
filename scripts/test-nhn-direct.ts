@@ -184,7 +184,7 @@ async function testAuthentication() {
         headers: {
           ...test.headers,
           'Content-Type': 'application/json'
-        }
+        } as unknown as HeadersInit
       });
 
       const data = await response.json();

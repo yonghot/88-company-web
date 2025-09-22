@@ -192,7 +192,7 @@ async function testWithDifferentAuth() {
         headers: {
           ...method.headers,
           'Content-Type': 'application/json'
-        }
+        } as unknown as HeadersInit
       });
 
       const data = await response.json();
