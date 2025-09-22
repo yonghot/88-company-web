@@ -15,6 +15,9 @@ export class SMSService {
   constructor() {
     const provider = process.env.SMS_PROVIDER || 'demo';
 
+    // 환경 정보 로깅
+    logger.info(`🔧 SMS Service 초기화 - Provider: ${provider}, ENV: ${process.env.NODE_ENV || 'development'}`);
+
     // Demo 모드인 경우 실제 SMS 프로바이더 초기화 생략
     if (provider === 'demo') {
       logger.info('📱 Demo SMS 모드로 실행 중');
@@ -29,8 +32,19 @@ export class SMSService {
       const secretKey = process.env.NHN_SECRET_KEY;
       const sendNo = process.env.NHN_SEND_NO;
 
+      // 환경 변수 상태 로깅 (민감한 정보는 마스킹)
+      logger.info(`🔍 NHN Cloud 환경 변수 체크:`);
+      logger.info(`  - APP_KEY: ${appKey ? '✅ 설정됨' : '❌ 없음'}`);
+      logger.info(`  - SECRET_KEY: ${secretKey ? '✅ 설정됨' : '❌ 없음'}`);
+      logger.info(`  - SEND_NO: ${sendNo || '❌ 없음'}`);
+
       if (!appKey || !secretKey || !sendNo) {
-        logger.warn('NHN Cloud SMS 설정이 없습니다. Demo 모드로 전환합니다.');
+        logger.warn('⚠️ NHN Cloud SMS 설정이 불완전합니다. Demo 모드로 전환합니다.');
+        logger.warn('  필요한 환경 변수: NHN_APP_KEY, NHN_SECRET_KEY, NHN_SEND_NO');
+        if (process.env.NODE_ENV === 'production') {
+          logger.error('🚨 프로덕션 환경에서 SMS 설정이 누락되었습니다!');
+          logger.error('  Vercel Dashboard에서 환경 변수를 설정하세요.');
+        }
         this.provider = null as any;
         return;
       }
@@ -43,9 +57,10 @@ export class SMSService {
         projectId: process.env.NHN_PROJECT_ID
       });
 
-      logger.info('📱 NHN Cloud SMS 서비스 초기화 완료');
+      logger.info('✅ NHN Cloud SMS 서비스 초기화 완료');
+      logger.info(`  - 발신번호: ${sendNo}`);
     } else {
-      logger.warn(`지원하지 않는 SMS 프로바이더: ${provider}. Demo 모드로 전환합니다.`);
+      logger.warn(`❌ 지원하지 않는 SMS 프로바이더: ${provider}. Demo 모드로 전환합니다.`);
       this.provider = null as any;
     }
   }
