@@ -52,7 +52,7 @@ export class NHNCloudSMSProvider implements SMSProvider {
       // 요청 본문
       const requestBody = {
         body: message,
-        sendNo: this.sendNo,
+        sendNo: this.sendNo.replace(/-/g, ''), // 하이픈 제거
         recipientList: [
           {
             recipientNo: formattedPhone,
