@@ -29,6 +29,7 @@ export async function GET() {
       }
     });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error fetching questions:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch questions' },
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
       data: saved
     }, { status: 201 });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error creating question:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create question' },
@@ -96,6 +98,7 @@ export async function PUT(request: NextRequest) {
       data: updated
     });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error updating question:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update question' },
@@ -131,6 +134,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Question deleted successfully'
     });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error deleting question:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete question' },

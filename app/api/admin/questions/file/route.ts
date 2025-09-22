@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       message: 'Questions saved successfully'
     });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error saving questions:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to save questions' },

@@ -29,8 +29,8 @@ interface QuestionCardProps {
   onMoveUp: (index: number) => void;
   onMoveDown: (index: number) => void;
   onToggleActive?: (step: string) => void;
-  dragAttributes?: any;
-  dragListeners?: any;
+  dragAttributes?: Record<string, unknown>;
+  dragListeners?: Record<string, unknown>;
 }
 
 const typeIcons = {

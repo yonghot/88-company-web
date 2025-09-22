@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Auth error:', error);
     return NextResponse.json(
       { error: '인증 처리 중 오류가 발생했습니다.' },
@@ -42,6 +43,7 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Logout error:', error);
     return NextResponse.json(
       { error: '로그아웃 처리 중 오류가 발생했습니다.' },

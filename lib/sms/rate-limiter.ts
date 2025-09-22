@@ -135,7 +135,7 @@ export class RateLimiter {
       }
     }
 
-    console.log(`🧹 Rate limiter cleanup: ${this.entries.size} entries remaining`);
+    // Cleanup completed silently
   }
 
   /**

@@ -1,5 +1,15 @@
 import { ChatQuestion } from './dynamic-types';
-import { createClient, SupabaseClient, RealtimeChannel, RealtimeChannelSendResponse } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
+
+interface ChatFlowStep {
+  id: string;
+  question: string;
+  inputType: 'text' | 'textarea' | 'select' | 'phone' | 'email';
+  placeholder?: string;
+  options?: string[];
+  validation?: (value: string) => boolean;
+  nextStep: (value?: string) => string;
+}
 
 interface RealtimeConfig {
   url: string;
@@ -189,7 +199,7 @@ export class EnhancedRealtimeService {
     }
   }
 
-  private async handleRealtimeChange(payload: any): Promise<void> {
+  private async handleRealtimeChange(payload: { eventType: string; old?: Record<string, unknown> | null; new?: Record<string, unknown> | null }): Promise<void> {
     if (this.lastUpdateSource === 'local' && Date.now() - this.status.lastSync!.getTime() < 1000) {
       console.log('[EnhancedRealtimeService] Ignoring echo from local update');
       return;
@@ -283,7 +293,7 @@ export class EnhancedRealtimeService {
 
       const { error: insertError } = await this.supabase
         .from('chat_questions')
-        .insert(questionsWithDefaults as any);
+        .insert(questionsWithDefaults);
 
       if (insertError) {
         console.error('[EnhancedRealtimeService] Insert error:', insertError);
@@ -341,9 +351,9 @@ export class EnhancedRealtimeService {
     return this.isReady;
   }
 
-  getChatFlow(): Record<string, any> {
+  getChatFlow(): Record<string, ChatFlowStep> {
     const activeQuestions = this.getActiveQuestions();
-    const flow: Record<string, any> = {};
+    const flow: Record<string, ChatFlowStep> = {};
 
     activeQuestions.forEach((question, index) => {
       const nextQuestion = activeQuestions[index + 1];
@@ -390,7 +400,7 @@ export class EnhancedRealtimeService {
     return activeQuestions.length;
   }
 
-  private getInputType(question: ChatQuestion): string {
+  private getInputType(question: ChatQuestion): 'text' | 'textarea' | 'select' | 'phone' | 'email' {
     if (question.step === 'phone') return 'phone';
 
     switch (question.type) {
@@ -417,6 +427,13 @@ export class EnhancedRealtimeService {
 
     if (question.step === 'name') {
       return (value: string) => value.length >= 2;
+    }
+
+    if (question.step === 'phone') {
+      return (value: string) => {
+        const numbers = value.replace(/\D/g, '');
+        return numbers.length === 11 && numbers.startsWith('010');
+      };
     }
 
     if (question.validation?.required) {

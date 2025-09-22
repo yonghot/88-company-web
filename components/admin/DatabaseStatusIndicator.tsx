@@ -53,6 +53,7 @@ export default function DatabaseStatusIndicator({ className = '' }: DatabaseStat
         setStorageType(status.isSupabaseEnabled ? 'supabase' : 'localStorage');
       }
     } catch (error) {
+      // Keep critical error logging for admin debugging
       console.error('[DatabaseStatus] Check failed:', error);
       setStatus('error');
       setStorageType('localStorage');

@@ -7,7 +7,6 @@ import {
   Smartphone,
   Monitor,
   X,
-  ChevronRight,
   RefreshCw,
   User,
   Bot,

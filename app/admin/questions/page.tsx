@@ -29,9 +29,7 @@ import {
   Eye,
   Save,
   RefreshCw,
-  Settings,
   Search,
-  Filter,
   ChevronLeft,
   Wifi,
   WifiOff,
@@ -41,6 +39,18 @@ import {
 import QuestionCard from '@/components/admin/QuestionCard';
 import QuestionEditModal from '@/components/admin/QuestionEditModal';
 import ChatPreview from '@/components/admin/ChatPreview';
+
+interface SortableQuestionCardProps {
+  question: ChatQuestion;
+  index: number;
+  isFirst: boolean;
+  isLast: boolean;
+  onEdit: (question: ChatQuestion) => void;
+  onDelete: (step: string) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
+  onToggleActive: (step: string) => void;
+}
 
 function SortableQuestionCard({
   question,
@@ -52,7 +62,7 @@ function SortableQuestionCard({
   onMoveUp,
   onMoveDown,
   onToggleActive
-}: any) {
+}: SortableQuestionCardProps) {
   const {
     attributes,
     listeners,
@@ -81,8 +91,8 @@ function SortableQuestionCard({
         onMoveUp={onMoveUp}
         onMoveDown={onMoveDown}
         onToggleActive={onToggleActive}
-        dragAttributes={attributes}
-        dragListeners={listeners}
+        dragAttributes={attributes as unknown as Record<string, unknown>}
+        dragListeners={listeners as unknown as Record<string, unknown>}
       />
     </div>
   );
@@ -105,7 +115,6 @@ export default function EnhancedQuestionsManagement() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     state: 'disconnected',
     lastSync: null,
@@ -121,28 +130,28 @@ export default function EnhancedQuestionsManagement() {
   );
 
   useEffect(() => {
-    console.log('[Admin] Initializing questions page...');
+    // Initializing questions page
 
     // 즉시 현재 질문 로드
     const currentQuestions = enhancedRealtimeService.getQuestions();
     if (currentQuestions.length > 0) {
-      console.log('[Admin] Initial questions loaded:', currentQuestions.length);
+      // Initial questions loaded
       setQuestions(currentQuestions);
     }
 
     const unsubscribeQuestions = enhancedRealtimeService.subscribeToQuestions((updatedQuestions) => {
-      console.log('[Admin] Questions updated:', updatedQuestions.length);
+      // Questions updated
       setQuestions(updatedQuestions);
     });
 
     const unsubscribeStatus = enhancedRealtimeService.subscribeToStatus((status) => {
-      console.log('[Admin] Connection status:', status);
+      // Connection status updated
       setConnectionStatus(status);
     });
 
     // 비동기로 최신 데이터 로드
     enhancedRealtimeService.forceRefresh().then(() => {
-      console.log('[Admin] Force refresh completed');
+      // Force refresh completed
     });
 
     return () => {
@@ -169,12 +178,11 @@ export default function EnhancedQuestionsManagement() {
   }, [questions, searchQuery, filterType]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    // Drag start event
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
 
     if (over && active.id !== over.id) {
       const oldIndex = questions.findIndex(q => q.step === active.id);
@@ -306,7 +314,7 @@ export default function EnhancedQuestionsManagement() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <a
@@ -341,7 +349,7 @@ export default function EnhancedQuestionsManagement() {
                 className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
               >
                 <Eye className="w-4 h-4" />
-                <span className="hidden sm:inline">미리보기</span>
+                <span className="hidden lg:inline">미리보기</span>
               </button>
 
               <button
@@ -349,7 +357,7 @@ export default function EnhancedQuestionsManagement() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-[#8800ff] rounded-lg hover:bg-[#7700dd] transition-all"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">질문 추가</span>
+                <span className="hidden lg:inline">질문 추가</span>
               </button>
             </div>
           </div>
@@ -368,8 +376,8 @@ export default function EnhancedQuestionsManagement() {
         </div>
       )}
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6 flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -403,7 +411,7 @@ export default function EnhancedQuestionsManagement() {
             items={filteredQuestions.map(q => q.step)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-4">
+            <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
               {filteredQuestions.map((question, index) => (
                 <SortableQuestionCard
                   key={question.step}

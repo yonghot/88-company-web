@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { LeadData } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import { Download, RefreshCw, Search, Filter, Trash2, Eye } from 'lucide-react';
+import Image from 'next/image';
 
 export default function AdminPage() {
   const [leads, setLeads] = useState<LeadData[]>([]);
@@ -24,6 +25,7 @@ export default function AdminPage() {
         setFilteredLeads(data.leads);
       }
     } catch (error) {
+      // Keep critical error logging for admin debugging
       console.error('Failed to fetch leads:', error);
     } finally {
       setLoading(false);
@@ -96,6 +98,7 @@ export default function AdminPage() {
         fetchLeads();
       }
     } catch (error) {
+      // Keep critical error logging for admin debugging
       console.error('Failed to delete lead:', error);
     }
   };
@@ -110,7 +113,7 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/88-logo.png" alt="88" className="w-10 h-10 rounded-full border border-[#00E5DB]/30" />
+              <Image src="/88-logo.png" alt="88" width={40} height={40} className="w-10 h-10 rounded-full border border-[#00E5DB]/30" />
               <div>
                 <h1 className="text-xl font-bold text-gray-100">88 관리자</h1>
                 <p className="text-sm text-gray-400">리드 관리 시스템</p>
@@ -135,9 +138,9 @@ export default function AdminPage() {
       </div>
 
       {/* 메인 컨텐츠 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 통계 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-[#1A1F2E] rounded-xl border border-[#2E3544] p-6 hover:border-[#00E5DB]/20 transition-all">
             <div className="flex items-center justify-between">
               <div>
@@ -211,7 +214,7 @@ export default function AdminPage() {
 
         {/* 필터 및 액션 */}
         <div className="bg-[#1A1F2E] rounded-xl border border-[#2E3544] p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
             {/* 검색 */}
             <div className="flex-1">
               <div className="relative">
@@ -260,29 +263,29 @@ export default function AdminPage() {
 
         {/* 테이블 */}
         <div className="bg-[#1A1F2E] rounded-xl border border-[#2E3544] overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-w-full">
             <table className="w-full">
               <thead className="bg-[#252B3B] border-b border-[#2E3544]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300 tracking-wider">
                     이름
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300 tracking-wider">
                     전화번호
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300 tracking-wider">
                     서비스
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300 tracking-wider">
                     예산
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300 tracking-wider">
                     시작시기
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300 tracking-wider">
                     등록일시
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-300 tracking-wider">
                     액션
                   </th>
                 </tr>
@@ -391,7 +394,7 @@ export default function AdminPage() {
                   {selectedLead.message && (
                     <div>
                       <label className="text-sm font-medium text-gray-400">상세 내용</label>
-                      <p className="text-gray-900 whitespace-pre-wrap">{selectedLead.message}</p>
+                      <p className="text-gray-200 whitespace-pre-wrap">{selectedLead.message}</p>
                     </div>
                   )}
                   

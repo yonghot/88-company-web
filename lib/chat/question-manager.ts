@@ -42,6 +42,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
         }
       }
     } catch (error) {
+      // Keep critical error logging for debugging
       console.error('Failed to load questions:', error);
     }
 
@@ -64,6 +65,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
       localStorage.setItem(this.UPDATE_KEY, Date.now().toString());
       window.dispatchEvent(new Event('questionsUpdated'));
     } catch (error) {
+      // Keep critical error logging for debugging
       console.error('Failed to save questions:', error);
     }
   }
@@ -166,6 +168,13 @@ export class LocalStorageQuestionManager implements QuestionManager {
       return (value: string) => value.length >= 2;
     }
 
+    if (question.step === 'phone') {
+      return (value: string) => {
+        const numbers = value.replace(/\D/g, '');
+        return numbers.length === 11 && numbers.startsWith('010');
+      };
+    }
+
     if (question.validation?.required) {
       return (value: string) => {
         if (!value || value.trim() === '') return false;
@@ -220,7 +229,7 @@ export class LocalStorageQuestionManager implements QuestionManager {
       if (question.next_step) {
         // next_step이 유효한지 확인
         if (validStepIds && !validStepIds.has(question.next_step) && question.next_step !== 'complete') {
-          console.warn(`Invalid next_step "${question.next_step}" for question "${question.step}". Falling back to complete.`);
+          // Invalid next_step, falling back to complete
           return 'complete';
         }
         return question.next_step;

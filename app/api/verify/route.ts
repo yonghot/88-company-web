@@ -78,11 +78,9 @@ export async function POST(request: Request) {
     // 클라이언트 정보 수집 (로깅용)
     const clientIP = await getClientIP();
 
-    // 로깅 (프로덕션에서는 민감 정보 제외)
-    if (process.env.NODE_ENV === 'production') {
-      console.log(`[SMS API] Action: ${action}, IP: ${clientIP}, Time: ${new Date().toISOString()}`);
-    } else {
-      console.log(`[SMS API] Action: ${action}, Phone: ${phone}, IP: ${clientIP}`);
+    // API request tracking for audit purposes only in development
+    if (process.env.NODE_ENV === 'development') {
+      // Development logging only
     }
 
     // 입력 검증
@@ -186,6 +184,7 @@ export async function POST(request: Request) {
     );
 
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('인증 API 오류:', error);
 
     // 프로덕션에서는 내부 오류 정보 숨김
@@ -241,6 +240,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('통계 조회 오류:', error);
 
     const errorMessage = process.env.NODE_ENV === 'production'

@@ -19,6 +19,7 @@ export default function AdminLayout({
       });
       router.push('/admin-login');
     } catch (error) {
+      // Keep critical error logging for admin debugging
       console.error('Logout error:', error);
     }
   };

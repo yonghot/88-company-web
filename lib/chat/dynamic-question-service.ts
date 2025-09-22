@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatQuestion, ChatFlow, ChatQuestionHistory, DynamicQuestionService, QuestionCache, CACHE_TTL } from './dynamic-types';
 import { chatQuestions as staticQuestions } from './questions';
-// import { ClientStorage } from '@/lib/storage/client-storage'; // localStorage 사용 중지
 
 class QuestionCacheImpl implements QuestionCache {
   questions: Map<string, ChatQuestion> | null = null;
@@ -20,8 +19,10 @@ class QuestionCacheImpl implements QuestionCache {
   }
 }
 
+import { SupabaseClient } from '@supabase/supabase-js';
+
 export class DynamicQuestionServiceImpl implements DynamicQuestionService {
-  private supabase: any | null;
+  private supabase: SupabaseClient | null;
   private cache: QuestionCache;
   private useStaticFallback: boolean = false;
 
@@ -190,7 +191,6 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
       // 클라이언트 사이드에서는 localStorage에 저장
       if (typeof window !== 'undefined') {
-        // ClientStorage.addQuestion(question); // localStorage 사용 중지
       } else {
         await this.saveQuestionsToAPI(questions);
       }
@@ -227,7 +227,6 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
       // 클라이언트 사이드에서는 localStorage에 저장
       if (typeof window !== 'undefined') {
-        // ClientStorage.updateQuestion(step, updates); // localStorage 사용 중지
       } else {
         await this.saveQuestionsToAPI(questions);
       }
@@ -269,7 +268,6 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
       // 클라이언트 사이드에서는 localStorage에서 삭제
       if (typeof window !== 'undefined') {
-        // ClientStorage.deleteQuestion(step); // localStorage 사용 중지
       } else {
         await this.saveQuestionsToAPI(questions);
       }
@@ -317,7 +315,6 @@ export class DynamicQuestionServiceImpl implements DynamicQuestionService {
 
         // 클라이언트 사이드에서는 localStorage에 저장
         if (typeof window !== 'undefined') {
-          // ClientStorage.reorderQuestions(steps); // localStorage 사용 중지
         } else {
           // 서버 사이드에서는 API로 저장
           await this.saveQuestionsToAPI(reorderedMap);

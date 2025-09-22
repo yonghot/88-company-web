@@ -36,7 +36,7 @@ export const isSupabaseConfigured = () => {
   );
 
   if (!isValid) {
-    console.log('[Supabase] Not configured - using localStorage fallback');
+    // Supabase not configured - will use localStorage fallback
   }
 
   return isValid;
@@ -68,16 +68,16 @@ export function getSupabaseClient(): SupabaseClient | null {
   );
 
   if (!isValid) {
-    console.log('[Supabase] Not configured - using localStorage fallback');
+    // Supabase not configured - will use localStorage fallback
     _supabaseClient = null;
     return null;
   }
 
   try {
     _supabaseClient = createClient(url, key);
-    console.log('[Supabase] Client created successfully');
     return _supabaseClient;
   } catch (error) {
+    // Critical error - keep console.error for debugging
     console.error('[Supabase] Failed to create client:', error);
     _supabaseClient = null;
     return null;

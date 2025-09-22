@@ -36,10 +36,10 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  // 전화번호 유효성 검사 함수
+  // 전화번호 유효성 검사 함수 (010으로 시작하는 11자리만 허용)
   const validatePhoneNumber = (value: string) => {
     const numbers = value.replace(/\D/g, '');
-    return numbers.length === 11 && numbers.startsWith('01');
+    return numbers.length === 11 && numbers.startsWith('010');
   };
 
   const handlePhoneInputChange = (value: string) => {
@@ -87,9 +87,9 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
 
   if (currentStep.inputType === 'select' && currentStep.options) {
     return (
-      <div className="p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
+      <div className="p-3 sm:p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
         <div className="max-w-2xl mx-auto">
-          <p className="text-sm text-gray-400 mb-3 font-medium">
+          <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3 font-medium">
             옵션을 선택해주세요
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -128,7 +128,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
 
   if (currentStep.inputType === 'textarea') {
     return (
-      <div className="p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
+      <div className="p-3 sm:p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
         <div className="max-w-2xl mx-auto">
           <div className="relative">
             <Textarea
@@ -149,7 +149,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               onClick={handleSubmit}
               disabled={disabled || !inputValue.trim()}
               className={cn(
-                'absolute bottom-3 right-3 p-2 rounded-lg',
+                'absolute bottom-3 right-3 p-2.5 sm:p-2 rounded-lg',
                 'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
                 'hover:shadow-[0_0_15px_rgba(0,229,219,0.4)] active:scale-95',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -159,7 +159,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               <Send className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 mt-2 hidden sm:block">
             Enter키를 눌러 전송하거나 오른쪽 버튼을 클릭하세요
           </p>
         </div>
@@ -168,7 +168,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
   }
 
   return (
-    <div className="p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
+    <div className="p-3 sm:p-4 md:p-6 bg-[#1A1F2E]/80 backdrop-blur-sm border-t border-[#2E3544]/50">
       <div className="max-w-2xl mx-auto">
         <div className="relative">
           <Input
@@ -192,7 +192,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
             onClick={handleSubmit}
             disabled={disabled || !inputValue.trim() || (currentStep.inputType === 'phone' && isPhoneValid === false)}
             className={cn(
-              'absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg',
+              'absolute right-2 top-1/2 -translate-y-1/2 p-2.5 sm:p-2 rounded-lg',
               'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
               'hover:shadow-[0_0_15px_rgba(0,229,219,0.4)] active:scale-95',
               'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -206,17 +206,21 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
         <div className="mt-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">
             {currentStep.inputType === 'phone'
-              ? '예: 010-1234-5678'
+              ? '010으로 시작하는 번호 (예: 010-1234-5678)'
               : currentStep.inputType === 'email'
               ? '예: example@email.com'
-              : 'Enter키를 눌러 전송하세요'}
+              : <span className="hidden sm:inline">Enter키를 눌러 전송하세요</span>}
           </p>
           {currentStep.inputType === 'phone' && isPhoneValid !== null && (
             <span className={cn(
               "text-xs font-medium",
               isPhoneValid ? "text-green-500" : "text-amber-500"
             )}>
-              {isPhoneValid ? "✅ 올바른 형식" : "⚠️ 숫자를 더 입력해주세요"}
+              {isPhoneValid
+                ? "✅ 올바른 형식"
+                : inputValue.replace(/\D/g, '').length < 11
+                  ? "⚠️ 숫자를 더 입력해주세요"
+                  : "⚠️ 010으로 시작하는 번호만 가능합니다"}
             </span>
           )}
         </div>

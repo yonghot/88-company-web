@@ -1,5 +1,4 @@
 import { ChatStep } from './types';
-import { ChatQuestion } from './dynamic-types';
 
 export interface ChatFlowStep extends Omit<ChatStep, 'nextStep'> {
   step?: string;

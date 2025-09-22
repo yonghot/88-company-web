@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       message: 'Questions reordered successfully'
     });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error reordering questions:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to reorder questions';
     return NextResponse.json(

@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
         .eq('id', phoneId);
 
       if (selectError) {
+        // Keep critical error logging for debugging
         console.error('Supabase select error:', selectError);
         throw selectError;
       }
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
         result = { lead: data, updated: false };
       }
 
-      console.log('Lead saved to Supabase:', result.lead);
+      // Lead saved to Supabase successfully
       return NextResponse.json({ success: true, ...result }, { status: result.updated ? 200 : 201 });
     } else {
       // Fallback to file system
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
         );
         
         await saveLeadsToFile(updatedLeads);
-        console.log('Lead updated (file system):', updatedLead);
+        // Lead updated in file system
         
         return NextResponse.json({ success: true, lead: updatedLead, updated: true }, { status: 200 });
       }
@@ -130,11 +131,12 @@ export async function POST(request: NextRequest) {
       
       leads.push(lead);
       await saveLeadsToFile(leads);
-      console.log('New lead saved (file system):', lead);
+      // New lead saved to file system
       
       return NextResponse.json({ success: true, lead }, { status: 201 });
     }
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error saving lead:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to save lead' },
@@ -153,6 +155,7 @@ export async function GET() {
         .order('created_at', { ascending: false });
 
       if (error) {
+        // Keep critical error logging for debugging
         console.error('Supabase error:', error);
         throw error;
       }
@@ -164,6 +167,7 @@ export async function GET() {
       return NextResponse.json({ success: true, leads });
     }
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error fetching leads:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch leads' },
@@ -218,6 +222,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error deleting lead:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete lead' },

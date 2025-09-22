@@ -3,6 +3,7 @@
 import { Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { User } from 'lucide-react';
+import Image from 'next/image';
 
 interface ChatMessageProps {
   message: Message;
@@ -29,7 +30,7 @@ export function ChatMessage({ message, isTyping = false }: ChatMessageProps) {
           isBot ? 'bg-[#1A1F2E] border border-[#00E5DB]/30' : 'bg-gradient-to-br from-[#4DA3FF] to-[#00E5DB]'
         )}>
           {isBot ? (
-            <img src="/88-logo.png" alt="88" className="w-full h-full object-cover" />
+            <Image src="/88-logo.png" alt="88" width={36} height={36} className="w-full h-full object-cover" />
           ) : (
             <User className="w-5 h-5 text-white" />
           )}

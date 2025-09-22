@@ -6,7 +6,7 @@ import { ChatInput } from './ChatInput';
 import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
-import { Message, ChatState, LeadData, ChatFlowMap, ChatStep } from '@/lib/types';
+import { Message, ChatState, LeadData, ChatFlowMap, ChatFlowStep, ChatStep } from '@/lib/types';
 import { enhancedRealtimeService } from '@/lib/chat/enhanced-realtime-service';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
@@ -58,7 +58,7 @@ export function RealTimeChatInterface() {
   // 질문 초기 로드 (페이지 로드 시에만)
   useEffect(() => {
     const loadFlow = async () => {
-      console.log('[RealTimeChatInterface] Starting initialization...');
+      // Starting initialization
 
       // 초기화 완료 확인을 위한 폴링 (최대 10초)
       let attempts = 0;
@@ -70,22 +70,20 @@ export function RealTimeChatInterface() {
       }
 
       if (!enhancedRealtimeService.isInitialized()) {
-        console.error('[RealTimeChatInterface] Service initialization timeout');
+        // Service initialization timeout
         setIsInitialized(true);  // 타임아웃이어도 에러 화면 표시를 위해 설정
         return;
       }
 
-      console.log('[RealTimeChatInterface] Service initialized, loading flow...');
+      // Service initialized, loading flow
 
       // 서비스가 준비되었으니 데이터 로드
       const flow = enhancedRealtimeService.getChatFlow();
       const steps = enhancedRealtimeService.getTotalSteps();
 
-      console.log('[RealTimeChatInterface] Flow loaded:', Object.keys(flow).length, 'steps');
-      console.log('[RealTimeChatInterface] Total steps:', steps);
-      console.log('[RealTimeChatInterface] Flow keys:', Object.keys(flow));
+      // Flow loaded successfully
 
-      setChatFlow(flow);
+      setChatFlow(flow as ChatFlowMap);
       setTotalSteps(steps);
 
       // 첫 로드 시 시작 메시지 표시
@@ -93,7 +91,7 @@ export function RealTimeChatInterface() {
         initializeChat(flow);
         setIsInitialized(true);  // 초기화 완료 표시
       } else {
-        console.warn('[RealTimeChatInterface] No questions loaded from database');
+        // No questions loaded from database
         // 데이터가 없어도 초기화 완료로 표시 (에러 화면 표시용)
         setIsInitialized(true);
       }
@@ -117,7 +115,7 @@ export function RealTimeChatInterface() {
 
       // 전화번호 검증 실패 시 더 구체적인 메시지
       if (chatState.currentStep === 'phone') {
-        errorContent = '📱 올바른 휴대폰 번호 형식이 아닙니다.\n\n올바른 형식 예시:\n• 010-1234-5678\n• 01012345678\n• 010 1234 5678\n\n다시 입력해주세요.';
+        errorContent = '📱 올바른 휴대폰 번호 형식이 아닙니다.\n\n✅ 올바른 형식:\n• 010-1234-5678\n• 01012345678\n• 010 1234 5678\n\n⚠️ 현재 010으로 시작하는 번호만 지원합니다.\n다시 입력해주세요.';
       }
 
       const errorMessage: Message = {
@@ -233,6 +231,7 @@ export function RealTimeChatInterface() {
         isCompleted: true
       }));
     } catch (error) {
+      // Keep critical error logging for debugging
       console.error('Error saving lead:', error);
 
       const errorMessage: Message = {
@@ -278,15 +277,15 @@ export function RealTimeChatInterface() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {!chatState.isCompleted && (
-        <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-2">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm">
           <div className="max-w-4xl mx-auto">
             <ProgressBar currentStep={getProgressSteps()} totalSteps={totalSteps} />
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4">
           {chatState.messages.map((message) => (
             <ChatMessage key={message.id} message={message} />
           ))}
@@ -297,7 +296,7 @@ export function RealTimeChatInterface() {
                 <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                 <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
-              <span className="text-sm">입력 중...</span>
+              <span className="text-xs sm:text-sm">입력 중...</span>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -305,7 +304,7 @@ export function RealTimeChatInterface() {
       </div>
 
       {!chatState.isCompleted && !isTyping && currentStep && (
-        <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-4 py-4">
+        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-3 sm:px-4 py-3 sm:py-4 shadow-lg">
           <div className="max-w-4xl mx-auto">
             {currentStep.inputType === 'select' && currentStep.options && (
               <QuickReplyOptions
@@ -336,7 +335,7 @@ export function RealTimeChatInterface() {
                   const retryMessage: Message = {
                     id: uuidv4(),
                     type: 'bot',
-                    content: '📱 올바른 휴대폰 번호를 다시 입력해주세요.',
+                    content: '📱 올바른 휴대폰 번호를 다시 입력해주세요.\n(010으로 시작하는 11자리 번호)',
                     timestamp: new Date()
                   };
                   setChatState(prev => ({

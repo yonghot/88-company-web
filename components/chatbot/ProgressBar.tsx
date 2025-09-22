@@ -22,24 +22,24 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
   const displayStep = getDisplayStep();
 
   return (
-    <div className="w-full px-4 py-4">
+    <div className="w-full px-3 sm:px-4 py-2 sm:py-3">
       <div className="max-w-2xl mx-auto">
-        {/* 스텝 인디케이터 */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-300">
+        {/* 스텝 인디케이터 - 모바일에서 더 컴팩트하게 */}
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-gray-300">
               {displayStep}
             </span>
-            <span className="text-sm text-gray-400">/ 총 {safeTotalSteps}단계</span>
+            <span className="text-xs sm:text-sm text-gray-400">/ 총 {safeTotalSteps}단계</span>
           </div>
-          <span className="text-sm font-medium text-[#00E5DB]">
+          <span className="text-xs sm:text-sm font-medium text-[#00E5DB]">
             {Math.round(progress)}% 완료
           </span>
         </div>
         
-        {/* 프로그레스 바 */}
+        {/* 프로그레스 바 - 모바일에서 더 얇게 */}
         <div className="relative">
-          <div className="w-full bg-[#252B3B] rounded-full h-2.5 overflow-hidden border border-[#2E3544]">
+          <div className="w-full bg-[#252B3B] rounded-full h-2 sm:h-2.5 overflow-hidden border border-[#2E3544]">
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500 ease-out",
@@ -51,18 +51,19 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
               <div className="h-full bg-white/30 animate-pulse" />
             </div>
           </div>
-          
-          {/* 스텝 마커 */}
-          <div className="absolute top-0 left-0 w-full h-2.5 flex justify-between px-1">
-            {Array.from({ length: safeTotalSteps }, (_, i) => {
-              const stepProgress = ((i + 1) / safeTotalSteps) * 100;
-              const isCompleted = i < safeCurrentStep;
+
+          {/* 스텝 마커 - 모바일에서는 간소화 */}
+          <div className="absolute top-0 left-0 w-full h-2 sm:h-2.5 flex justify-between px-1">
+            {Array.from({ length: Math.min(safeTotalSteps, 4) }, (_, i) => {
+              const adjustedSteps = Math.min(safeTotalSteps, 4);
+              const stepProgress = ((i + 1) / adjustedSteps) * 100;
+              const isCompleted = i < (safeCurrentStep / safeTotalSteps) * adjustedSteps;
 
               return (
                 <div
                   key={i}
                   className={cn(
-                    "w-1 h-2.5 rounded-full transition-all duration-300",
+                    "w-0.5 sm:w-1 h-2 sm:h-2.5 rounded-full transition-all duration-300",
                     isCompleted
                       ? "bg-white/50"
                       : "bg-transparent"

@@ -1,5 +1,4 @@
 import { SMSProvider, SMSResult, SMSProviderError } from '../types';
-import crypto from 'crypto';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -242,11 +241,11 @@ export class NHNCloudSMSProvider implements SMSProvider {
 
   /**
    * 통계 ID 생성 (발송 그룹 관리용)
+   * NHN Cloud는 statsId가 8자리 이하여야 함
    */
   private generateStatsId(): string {
-    const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const random = Math.random().toString(36).substring(2, 8);
-    return `88CO_${date}_${random}`;
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `88${random}`;
   }
 
   /**

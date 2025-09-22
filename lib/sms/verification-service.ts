@@ -123,6 +123,7 @@ export class VerificationService {
       };
 
     } catch (error) {
+      // Keep critical error logging for debugging
       console.error('인증번호 발송 오류:', error);
       return {
         success: false,
@@ -201,6 +202,7 @@ export class VerificationService {
       };
 
     } catch (error) {
+      // Keep critical error logging for debugging
       console.error('인증번호 확인 오류:', error);
       return {
         success: false,

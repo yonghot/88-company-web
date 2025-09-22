@@ -55,10 +55,11 @@ export async function DELETE(
     
     await saveLeads(filteredLeads);
     
-    console.log('Lead deleted:', id);
+    // Lead deleted successfully
     
     return NextResponse.json({ success: true });
   } catch (error) {
+    // Keep critical error logging for debugging
     console.error('Error deleting lead:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete lead' },
