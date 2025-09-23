@@ -180,9 +180,9 @@ export async function POST(request: Request) {
         );
       }
 
-      // 전화번호를 클린한 형식으로 정규화 (SMS 서비스는 숫자만 필요)
-      const normalizedPhone = cleanPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-      const result = await service.sendVerificationCode(normalizedPhone);
+      // 전화번호를 숫자만으로 정규화 (verification-service와 일치시키기 위함)
+      const normalizedPhone = cleanPhone; // 이미 숫자만 포함
+      const result = await service.sendVerificationCode(phone); // 원본 형식 그대로 전달
 
       if (isProduction) {
         console.log('[VERIFY API] Send result:', {
@@ -245,9 +245,8 @@ export async function POST(request: Request) {
         );
       }
 
-      // 전화번호를 정규화된 형식으로 변환
-      const normalizedPhone = cleanPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-      const result = await getVerificationService().verifyCode(normalizedPhone, code);
+      // 전화번호를 원본 형식 그대로 전달 (verification-service가 내부적으로 정규화함)
+      const result = await getVerificationService().verifyCode(phone, code);
 
       if (!result.success) {
         // 프로덕션에서는 구체적인 오류 숨김
