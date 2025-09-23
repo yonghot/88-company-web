@@ -1,15 +1,41 @@
 import { NextResponse } from 'next/server';
 import { VerificationService } from '@/lib/sms/verification-service';
+import { SMSService } from '@/lib/sms/sms-service';
 import { headers } from 'next/headers';
 import { VerificationResult } from '@/lib/chat/flow-types';
 
-// 통합 인증 서비스 인스턴스 - Lazy initialization
+// 통합 인증 서비스 인스턴스 - Lazy initialization with environment check
 let verificationService: VerificationService | null = null;
+let lastSMSProvider: string | undefined = undefined;
 
 function getVerificationService(): VerificationService {
+  const currentProvider = process.env.SMS_PROVIDER;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // 프로덕션에서 환경변수가 변경된 경우 재초기화
+  if (isProduction && currentProvider !== lastSMSProvider) {
+    console.log('[VERIFY API] SMS Provider changed or first init:', {
+      previous: lastSMSProvider,
+      current: currentProvider,
+      config: {
+        hasAppKey: !!process.env.NHN_APP_KEY,
+        hasSecretKey: !!process.env.NHN_SECRET_KEY,
+        sendNo: process.env.NHN_SEND_NO || 'NOT_SET'
+      }
+    });
+
+    // 재초기화
+    verificationService = null;
+    lastSMSProvider = currentProvider;
+  }
+
   if (!verificationService) {
     verificationService = VerificationService.getInstance();
+    if (isProduction) {
+      console.log('[VERIFY API] VerificationService instance created');
+    }
   }
+
   return verificationService;
 }
 
@@ -77,14 +103,24 @@ export async function POST(request: Request) {
 
     // 클라이언트 정보 수집 (로깅용)
     const clientIP = await getClientIP();
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    // API request tracking for audit purposes only in development
-    if (process.env.NODE_ENV === 'development') {
-      // Development logging only
+    // Production logging for debugging
+    if (isProduction) {
+      console.log('[VERIFY API] Request received:', {
+        action,
+        phone: phone ? `${phone.substring(0, 3)}****` : undefined,
+        hasCode: !!code,
+        clientIP,
+        timestamp: new Date().toISOString()
+      });
     }
 
     // 입력 검증
     if (!action || !phone) {
+      if (isProduction) {
+        console.error('[VERIFY API] Missing required parameters:', { action, hasPhone: !!phone });
+      }
       return NextResponse.json(
         { error: '필수 파라미터가 누락되었습니다' },
         { status: 400 }
@@ -104,13 +140,49 @@ export async function POST(request: Request) {
 
     // 인증번호 발송
     if (action === 'send') {
-      const result = await getVerificationService().sendVerificationCode(phone);
+      if (isProduction) {
+        console.log('[VERIFY API] Attempting to send verification code');
+      }
+
+      let service;
+      try {
+        service = getVerificationService();
+        if (!service) {
+          throw new Error('Verification service initialization failed');
+        }
+      } catch (serviceError) {
+        console.error('[VERIFY API] Failed to get verification service:', serviceError);
+        return NextResponse.json(
+          {
+            error: '인증 서비스 초기화 실패',
+            message: '잠시 후 다시 시도해주세요'
+          },
+          { status: 500 }
+        );
+      }
+
+      const result = await service.sendVerificationCode(phone);
+
+      if (isProduction) {
+        console.log('[VERIFY API] Send result:', {
+          success: result.success,
+          hasError: !!result.error,
+          hasMessage: !!result.message
+        });
+      }
 
       if (!result.success) {
         // 프로덕션에서는 구체적인 오류 숨김
         const errorMessage = process.env.NODE_ENV === 'production'
           ? '인증번호 발송에 실패했습니다'
           : result.error || '인증번호 발송에 실패했습니다';
+
+        if (isProduction) {
+          console.error('[VERIFY API] Send failed:', {
+            error: result.error,
+            message: result.message
+          });
+        }
 
         return NextResponse.json(
           {
@@ -185,10 +257,20 @@ export async function POST(request: Request) {
 
   } catch (error) {
     // Keep critical error logging for debugging
-    console.error('인증 API 오류:', error);
+    console.error('[VERIFY API] Critical error:', error);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (isProduction) {
+      console.error('[VERIFY API] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // 프로덕션에서는 내부 오류 정보 숨김
-    const errorMessage = process.env.NODE_ENV === 'production'
+    const errorMessage = isProduction
       ? '서버 오류가 발생했습니다'
       : `서버 오류: ${error instanceof Error ? error.message : 'Unknown error'}`;
 
