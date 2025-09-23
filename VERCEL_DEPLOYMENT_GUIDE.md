@@ -22,9 +22,16 @@
 | `ADMIN_PASSWORD` | `159753` | 관리자 페이지 비밀번호 | Production, Preview, Development |
 | `ENABLE_PRODUCTION_LOGS` | `true` | 프로덕션 로깅 활성화 (선택) | Production |
 
-### 3. Supabase 환경 변수 (이미 설정됨)
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+### 3. 🔴 중요: Supabase 환경 변수 (필수!)
+
+데이터를 영구 저장하려면 **반드시** 설정해야 합니다:
+
+| 변수명 | 값 | 설명 | 환경 |
+|--------|---|------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://tjizerpeyteokqhufqea.supabase.co` | Supabase URL | Production, Preview, Development |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaXplcnBleXRlb2txaHVmcWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2ODkxMTEsImV4cCI6MjA3MzI2NTExMX0.lpw_F9T7tML76NyCm1_6NJ6kyFdXtYsoUehK9ZhZT7s` | Supabase Anon Key | Production, Preview, Development |
+
+**⚠️ 주의**: Supabase가 설정되지 않으면 리드 데이터가 저장되지 않습니다!
 
 ## ⚠️ 주의사항
 
