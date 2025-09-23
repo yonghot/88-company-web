@@ -92,6 +92,13 @@ export class VerificationService {
       const code = this.generateSecureCode();
       const expiresAt = new Date(Date.now() + this.CODE_EXPIRY_MINUTES * 60 * 1000);
 
+      // 디버깅: 발송 정보 확인
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[인증 발송] 원본 전화번호:', phone);
+        console.log('[인증 발송] 정규화된 전화번호:', normalizedPhone);
+        console.log('[인증 발송] 생성된 코드:', code);
+      }
+
       // 6. 인증번호 저장
       await this.saveVerificationCode(normalizedPhone, code, expiresAt);
 
@@ -145,6 +152,12 @@ export class VerificationService {
     try {
       const normalizedPhone = SMSService.normalizePhoneNumber(phone);
 
+      // 디버깅: 정규화된 전화번호 확인
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[인증 검증] 원본 전화번호:', phone);
+        console.log('[인증 검증] 정규화된 전화번호:', normalizedPhone);
+      }
+
       // 1. 저장된 인증번호 조회
       const storedCode = await this.getVerificationCode(normalizedPhone);
 
@@ -179,8 +192,18 @@ export class VerificationService {
         };
       }
 
-      // 4. 코드 확인
-      if (storedCode.code !== code) {
+      // 4. 코드 확인 (문자열로 변환하여 비교)
+      const storedCodeStr = String(storedCode.code).trim();
+      const inputCodeStr = String(code).trim();
+
+      // 디버깅 로그 (프로덕션에서는 보안상 제거해야 함)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[인증 확인] 저장된 코드:', storedCodeStr);
+        console.log('[인증 확인] 입력된 코드:', inputCodeStr);
+        console.log('[인증 확인] 일치 여부:', storedCodeStr === inputCodeStr);
+      }
+
+      if (storedCodeStr !== inputCodeStr) {
         // 시도 횟수 증가
         await this.incrementAttempts(normalizedPhone);
         return {
@@ -321,6 +344,11 @@ export class VerificationService {
       verified: false
     };
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[저장] Supabase 구성됨:', isSupabaseConfigured());
+      console.log('[저장] 저장할 데이터:', { phone, code });
+    }
+
     if (isSupabaseConfigured() && supabase) {
       // 기존 코드 삭제
       await supabase
@@ -329,13 +357,19 @@ export class VerificationService {
         .eq('phone', phone);
 
       // 새 코드 저장
-      await supabase
+      const insertResult = await supabase
         .from('verification_codes')
         .insert({
           phone,
           code,
-          expires_at: expiresAt.toISOString()
+          expires_at: expiresAt.toISOString(),
+          attempts: 0,
+          created_at: new Date().toISOString()
         });
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[저장] 새 코드 저장 결과:', insertResult);
+      }
     } else {
       // 메모리 저장
       this.memoryStore.set(phone, verificationCode);
@@ -346,8 +380,13 @@ export class VerificationService {
    * 인증번호 조회
    */
   private async getVerificationCode(phone: string): Promise<VerificationCode | null> {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[조회] 전화번호로 조회:', phone);
+      console.log('[조회] Supabase 구성됨:', isSupabaseConfigured());
+    }
+
     if (isSupabaseConfigured() && supabase) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('verification_codes')
         .select('*')
         .eq('phone', phone)
@@ -355,10 +394,14 @@ export class VerificationService {
         .limit(1)
         .single();
 
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[조회] Supabase 조회 결과:', { data, error });
+      }
+
       if (data) {
         return {
           phone: data.phone,
-          code: data.code,
+          code: String(data.code), // 문자열로 변환
           expiresAt: new Date(data.expires_at),
           attempts: data.attempts || 0,
           createdAt: new Date(data.created_at),
