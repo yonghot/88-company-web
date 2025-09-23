@@ -65,6 +65,7 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
     setVerifyAttempts(0);
 
     try {
+      console.log('[VerificationInput] Sending SMS to:', phoneNumber);
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

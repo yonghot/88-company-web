@@ -115,7 +115,7 @@ export function RealTimeChatInterface() {
 
       // 전화번호 검증 실패 시 더 구체적인 메시지
       if (chatState.currentStep === 'phone') {
-        errorContent = '📱 올바른 휴대폰 번호 형식이 아닙니다.\n\n✅ 올바른 형식:\n• 010-1234-5678\n• 01012345678\n• 010 1234 5678\n\n⚠️ 현재 010으로 시작하는 번호만 지원합니다.\n다시 입력해주세요.';
+        errorContent = '📱 올바른 휴대폰 번호 형식이 아닙니다.\n\n✅ 올바른 형식:\n• 010-1234-5678\n• 01012345678\n• 010 1234 5678\n\n⚠️ 휴대폰 번호(010, 011, 016, 017, 018, 019)를 입력해주세요.\n다시 입력해주세요.';
       }
 
       const errorMessage: Message = {
@@ -182,6 +182,7 @@ export function RealTimeChatInterface() {
   };
 
   const handlePhoneSubmit = (phone: string) => {
+    console.log('[RealTimeChatInterface] Phone submitted:', phone);
     setPhoneNumber(phone);
     setShowVerification(true);
   };
@@ -335,7 +336,7 @@ export function RealTimeChatInterface() {
                   const retryMessage: Message = {
                     id: uuidv4(),
                     type: 'bot',
-                    content: '📱 올바른 휴대폰 번호를 다시 입력해주세요.\n(010으로 시작하는 11자리 번호)',
+                    content: '📱 올바른 휴대폰 번호를 다시 입력해주세요.\n(11자리 휴대폰 번호)',
                     timestamp: new Date()
                   };
                   setChatState(prev => ({

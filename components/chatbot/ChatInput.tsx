@@ -222,7 +222,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
                 ? "✅ 올바른 형식"
                 : inputValue.replace(/\D/g, '').length < 11
                   ? "⚠️ 숫자를 더 입력해주세요"
-                  : "⚠️ 010으로 시작하는 번호만 가능합니다"}
+                  : "⚠️ 올바른 휴대폰 번호가 아닙니다"}
             </span>
           )}
         </div>

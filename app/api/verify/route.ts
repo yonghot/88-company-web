@@ -119,7 +119,11 @@ export async function POST(request: Request) {
     // 입력 검증
     if (!action || !phone) {
       if (isProduction) {
-        console.error('[VERIFY API] Missing required parameters:', { action, hasPhone: !!phone });
+        console.error('[VERIFY API] Missing required parameters:', {
+          action,
+          hasPhone: !!phone,
+          receivedBody: body
+        });
       }
       return NextResponse.json(
         { error: '필수 파라미터가 누락되었습니다' },
@@ -135,7 +139,10 @@ export async function POST(request: Request) {
       if (isProduction) {
         console.error('[VERIFY API] Invalid phone format:', {
           phone: phone ? `${phone.substring(0, 3)}****` : 'empty',
-          cleanPhone: cleanPhone ? `${cleanPhone.substring(0, 3)}****` : 'empty'
+          cleanPhone: cleanPhone ? `${cleanPhone.substring(0, 3)}****` : 'empty',
+          phoneLength: phone?.length,
+          cleanPhoneLength: cleanPhone?.length,
+          receivedAction: action
         });
       }
       return NextResponse.json(
