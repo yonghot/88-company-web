@@ -132,8 +132,17 @@ export async function POST(request: Request) {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
 
     if (!phoneRegex.test(phone) && !phoneRegex.test(cleanPhone)) {
+      if (isProduction) {
+        console.error('[VERIFY API] Invalid phone format:', {
+          phone: phone ? `${phone.substring(0, 3)}****` : 'empty',
+          cleanPhone: cleanPhone ? `${cleanPhone.substring(0, 3)}****` : 'empty'
+        });
+      }
       return NextResponse.json(
-        { error: '올바른 휴대폰 번호 형식이 아닙니다' },
+        {
+          error: '올바른 휴대폰 번호 형식이 아닙니다',
+          message: '010-0000-0000 형식으로 입력해주세요'
+        },
         { status: 400 }
       );
     }

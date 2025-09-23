@@ -89,7 +89,9 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
         if (data.retryAfter) {
           setError(`${data.error} (${data.retryAfter}초 후 재시도 가능)`);
         } else {
-          setError(data.error || '인증번호 발송에 실패했습니다.');
+          // 서버에서 message 필드도 함께 제공하는 경우 활용
+          const errorMessage = data.message || data.error || '인증번호 발송에 실패했습니다.';
+          setError(errorMessage);
         }
       }
     } catch (error) {
@@ -162,15 +164,15 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
 
   // Auto-send verification code only if phone number is valid
   useEffect(() => {
-    // 전화번호 형식 검증 (11자리 한국 휴대폰 번호)
+    // 전화번호 형식 검증 (서버와 동일한 검증 로직)
     const cleaned = phoneNumber.replace(/[^0-9]/g, '');
-    const isValidFormat = /^01[0-9]{9}$/.test(cleaned);
+    const isValidFormat = /^(010|011|016|017|018|019)\d{7,8}$/.test(cleaned) && cleaned.length === 11;
 
     if (isValidFormat) {
       sendVerificationCode();
-    } else {
-      // 형식이 올바르지 않으면 에러 메시지 표시
-      setError('올바른 휴대폰 번호 형식이 아닙니다.');
+    } else if (cleaned.length > 0) {
+      // 형식이 올바르지 않으면 에러 메시지 표시 (빈 문자열일 때는 표시하지 않음)
+      setError('올바른 휴대폰 번호 형식이 아닙니다. (010-0000-0000 형식)');
     }
   }, [phoneNumber]);
 
