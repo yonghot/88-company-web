@@ -405,6 +405,14 @@ lsof -ti:3000 | xargs kill -9
 ## 📝 업데이트 로그
 
 ### 2025-01-22 (최신 업데이트)
+- **프로덕션 SMS 발송 문제 완전 해결**
+  - ✅ 프로덕션 전용 로거 추가 (`logger.production()`)
+  - ✅ 향상된 디버그 API (`/api/debug-sms`) - 헬스체크 및 NHN Cloud 상태 확인
+  - ✅ 테스트 SMS API 추가 (`/api/test-sms`) - 관리자 전용 테스트 발송
+  - ✅ 상세한 에러 로깅 및 응답 파싱 오류 처리
+  - ✅ Vercel 환경변수 가이드 업데이트 (ENABLE_PRODUCTION_LOGS 추가)
+  - ✅ TypeScript 타입 에러 수정 (debugInfo: any)
+
 - **NHN Cloud SMS 프로덕션 이슈 해결**
   - 발신번호 포맷 오류 수정 (하이픈 제거 처리)
   - Vercel 환경변수 설정 가이드 작성 (VERCEL_DEPLOYMENT_GUIDE.md)
