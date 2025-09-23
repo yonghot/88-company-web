@@ -69,6 +69,13 @@ export class NHNCloudSMSProvider implements SMSProvider {
       const headers = this.createAuthHeaders('POST', '/sms/v3.0/appKeys/' + this.appKey + '/sender/sms', timestamp);
 
       // API 호출
+      logger.production(`🚀 NHN Cloud API 호출: ${url}`);
+      logger.production(`📦 요청 데이터:`, {
+        sendNo: requestBody.sendNo,
+        recipientCount: requestBody.recipientList.length,
+        messageLength: requestBody.body.length
+      });
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -78,31 +85,62 @@ export class NHNCloudSMSProvider implements SMSProvider {
         body: JSON.stringify(requestBody)
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data;
+
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        logger.error('🚨 NHN Cloud API 응답 파싱 실패:', responseText);
+        logger.production('🚨 NHN Cloud API 응답 파싱 실패:', {
+          status: response.status,
+          statusText: response.statusText,
+          responsePreview: responseText.substring(0, 200)
+        });
+        throw new SMSProviderError(
+          'NHN Cloud API 응답 파싱 실패',
+          'nhncloud',
+          { responseText, parseError }
+        );
+      }
+
+      logger.production(`📥 NHN Cloud API 응답:`, {
+        isSuccessful: data.header?.isSuccessful,
+        resultCode: data.header?.resultCode,
+        resultMessage: data.header?.resultMessage,
+        requestId: data.body?.data?.requestId
+      });
 
       // NHN Cloud API 응답 처리
-      if (data.header.isSuccessful) {
+      if (data.header?.isSuccessful) {
         logger.info(`✅ SMS sent via NHN Cloud to ${formattedPhone}`);
+        logger.production(`✅ SMS 발송 성공: ${formattedPhone}, requestId: ${data.body?.data?.requestId}`);
 
         return {
           success: true,
-          messageId: data.body.data.requestId,
+          messageId: data.body?.data?.requestId,
           provider: 'nhncloud',
           timestamp: new Date(),
           details: {
-            requestId: data.body.data.requestId,
-            requestTime: data.body.data.requestTime,
-            statusCode: data.body.data.statusCode
+            requestId: data.body?.data?.requestId,
+            requestTime: data.body?.data?.requestTime,
+            statusCode: data.body?.data?.statusCode
           }
         };
       } else {
+        const errorDetails = {
+          resultCode: data.header?.resultCode,
+          resultMessage: data.header?.resultMessage,
+          responseData: data
+        };
+
+        logger.error('❌ NHN Cloud SMS 발송 실패:', errorDetails);
+        logger.production('❌ NHN Cloud SMS 발송 실패:', errorDetails);
+
         throw new SMSProviderError(
-          data.header.resultMessage || 'NHN Cloud SMS 발송 실패',
+          data.header?.resultMessage || 'NHN Cloud SMS 발송 실패',
           'nhncloud',
-          {
-            resultCode: data.header.resultCode,
-            resultMessage: data.header.resultMessage
-          }
+          errorDetails
         );
       }
     } catch (error) {

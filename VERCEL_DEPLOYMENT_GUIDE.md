@@ -20,6 +20,7 @@
 | `NHN_SECRET_KEY` | `GgpYWYExRH1AtgnU1gByX4jwBsHna6E5` | NHN Cloud Secret Key | Production, Preview, Development |
 | `NHN_SEND_NO` | `010-5317-9499` | 발신 번호 | Production, Preview, Development |
 | `ADMIN_PASSWORD` | `159753` | 관리자 페이지 비밀번호 | Production, Preview, Development |
+| `ENABLE_PRODUCTION_LOGS` | `true` | 프로덕션 로깅 활성화 (선택) | Production |
 
 ### 3. Supabase 환경 변수 (이미 설정됨)
 - `NEXT_PUBLIC_SUPABASE_URL`
@@ -65,7 +66,18 @@ curl http://localhost:3000/api/debug-sms
 }
 ```
 
-### 2. 실제 SMS 테스트
+### 2. 테스트 SMS API 사용 (새로 추가!)
+```bash
+# 프로덕션 테스트 (관리자 비밀번호 필요)
+curl -X GET "https://88-company-web.vercel.app/api/test-sms?phone=010-1234-5678" \
+  -H "x-admin-password: 159753"
+
+# 헬스체크
+curl -X POST "https://88-company-web.vercel.app/api/test-sms/health" \
+  -H "x-admin-password: 159753"
+```
+
+### 3. 실제 SMS 테스트
 1. https://88-company-web.vercel.app 접속
 2. 챗봇에서 전화번호 입력 단계까지 진행
 3. 실제 전화번호 입력

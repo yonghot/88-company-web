@@ -14,12 +14,15 @@ export class SMSService {
 
   constructor() {
     const provider = process.env.SMS_PROVIDER || 'demo';
+    const isProduction = process.env.NODE_ENV === 'production';
 
     // 환경 정보 로깅
+    logger.production(`🔧 SMS Service 초기화 시작 - Provider: ${provider}, ENV: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`🔧 SMS Service 초기화 - Provider: ${provider}, ENV: ${process.env.NODE_ENV || 'development'}`);
 
     // Demo 모드인 경우 실제 SMS 프로바이더 초기화 생략
     if (provider === 'demo') {
+      logger.production('📱 Demo SMS 모드로 실행 중');
       logger.info('📱 Demo SMS 모드로 실행 중');
       // Demo 모드에서는 provider를 null로 설정하고 sendSMS 메소드에서 처리
       this.provider = null as any;
@@ -33,15 +36,25 @@ export class SMSService {
       const sendNo = process.env.NHN_SEND_NO;
 
       // 환경 변수 상태 로깅 (민감한 정보는 마스킹)
+      const envStatus = {
+        APP_KEY: appKey ? '✅ 설정됨' : '❌ 없음',
+        SECRET_KEY: secretKey ? '✅ 설정됨' : '❌ 없음',
+        SEND_NO: sendNo ? `✅ ${sendNo}` : '❌ 없음',
+        API_URL: process.env.NHN_API_URL || '기본값 사용'
+      };
+
+      logger.production(`🔍 NHN Cloud 환경 변수 체크:`, envStatus);
       logger.info(`🔍 NHN Cloud 환경 변수 체크:`);
       logger.info(`  - APP_KEY: ${appKey ? '✅ 설정됨' : '❌ 없음'}`);
       logger.info(`  - SECRET_KEY: ${secretKey ? '✅ 설정됨' : '❌ 없음'}`);
       logger.info(`  - SEND_NO: ${sendNo || '❌ 없음'}`);
 
       if (!appKey || !secretKey || !sendNo) {
+        const errorMsg = `⚠️ NHN Cloud SMS 설정이 불완전합니다. Demo 모드로 전환합니다. 필요한 환경 변수: NHN_APP_KEY(${!!appKey}), NHN_SECRET_KEY(${!!secretKey}), NHN_SEND_NO(${!!sendNo})`;
+        logger.production(errorMsg);
         logger.warn('⚠️ NHN Cloud SMS 설정이 불완전합니다. Demo 모드로 전환합니다.');
         logger.warn('  필요한 환경 변수: NHN_APP_KEY, NHN_SECRET_KEY, NHN_SEND_NO');
-        if (process.env.NODE_ENV === 'production') {
+        if (isProduction) {
           logger.error('🚨 프로덕션 환경에서 SMS 설정이 누락되었습니다!');
           logger.error('  Vercel Dashboard에서 환경 변수를 설정하세요.');
         }
@@ -49,17 +62,26 @@ export class SMSService {
         return;
       }
 
-      // NHN Cloud 프로바이더 초기화
-      this.provider = new NHNCloudSMSProvider({
-        appKey,
-        secretKey,
-        sendNo,
-        projectId: process.env.NHN_PROJECT_ID
-      });
+      try {
+        // NHN Cloud 프로바이더 초기화
+        this.provider = new NHNCloudSMSProvider({
+          appKey,
+          secretKey,
+          sendNo,
+          projectId: process.env.NHN_PROJECT_ID
+        });
 
-      logger.info('✅ NHN Cloud SMS 서비스 초기화 완료');
-      logger.info(`  - 발신번호: ${sendNo}`);
+        logger.production(`✅ NHN Cloud SMS 서비스 초기화 완료 - 발신번호: ${sendNo}`);
+        logger.info('✅ NHN Cloud SMS 서비스 초기화 완료');
+        logger.info(`  - 발신번호: ${sendNo}`);
+      } catch (initError) {
+        logger.error('🚨 NHN Cloud 프로바이더 초기화 실패:', initError);
+        logger.production(`🚨 NHN Cloud 프로바이더 초기화 실패:`, initError);
+        this.provider = null as any;
+        return;
+      }
     } else {
+      logger.production(`❌ 지원하지 않는 SMS 프로바이더: ${provider}. Demo 모드로 전환합니다.`);
       logger.warn(`❌ 지원하지 않는 SMS 프로바이더: ${provider}. Demo 모드로 전환합니다.`);
       this.provider = null as any;
     }
