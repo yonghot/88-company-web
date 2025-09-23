@@ -302,7 +302,12 @@ export async function GET(request: Request) {
     // 관리자 권한 체크
     if (!(await isAdmin())) {
       return NextResponse.json(
-        { error: '인증이 필요합니다' },
+        {
+          error: '인증이 필요합니다',
+          message: '이 엔드포인트는 관리자 전용입니다.',
+          info: 'SMS 인증을 위해서는 POST 요청을 사용하세요.',
+          documentation: '/test-verify 페이지에서 API를 테스트할 수 있습니다.'
+        },
         { status: 401 }
       );
     }
