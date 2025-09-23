@@ -367,8 +367,14 @@ export class VerificationService {
           created_at: new Date().toISOString()
         });
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[저장] 새 코드 저장 결과:', insertResult);
+      // 프로덕션에서도 에러 로깅
+      if (insertResult.error) {
+        console.error('[VERIFY] Supabase insert 실패:', insertResult.error);
+        throw new Error(`인증번호 저장 실패: ${insertResult.error.message}`);
+      }
+
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
+        console.log('[VERIFY] 저장 완료:', { phone, code: '******' });
       }
     } else {
       // 메모리 저장
@@ -394,8 +400,10 @@ export class VerificationService {
         .limit(1)
         .single();
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[조회] Supabase 조회 결과:', { data, error });
+      // 프로덕션에서도 로깅
+      if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
+        console.log('[VERIFY] 조회 시도:', { phone });
+        console.log('[VERIFY] 조회 결과:', { found: !!data, error: error?.message });
       }
 
       if (data) {
