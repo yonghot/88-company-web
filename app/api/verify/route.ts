@@ -132,10 +132,13 @@ export async function POST(request: Request) {
     }
 
     // 전화번호 형식 검증 (더 엄격한 검증)
-    const phoneRegex = /^(010|011|016|017|018|019)[-]?\d{3,4}[-]?\d{4}$/;
     const cleanPhone = phone.replace(/[^0-9]/g, '');
 
-    if (!phoneRegex.test(phone) && !phoneRegex.test(cleanPhone)) {
+    // 정확히 11자리이고 올바른 접두사로 시작하는지 확인
+    const isValidPhone = cleanPhone.length === 11 &&
+                        /^(010|011|016|017|018|019)/.test(cleanPhone);
+
+    if (!isValidPhone) {
       if (isProduction) {
         console.error('[VERIFY API] Invalid phone format:', {
           phone: phone ? `${phone.substring(0, 3)}****` : 'empty',
@@ -177,7 +180,9 @@ export async function POST(request: Request) {
         );
       }
 
-      const result = await service.sendVerificationCode(phone);
+      // 전화번호를 클린한 형식으로 정규화 (SMS 서비스는 숫자만 필요)
+      const normalizedPhone = cleanPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      const result = await service.sendVerificationCode(normalizedPhone);
 
       if (isProduction) {
         console.log('[VERIFY API] Send result:', {
@@ -240,7 +245,9 @@ export async function POST(request: Request) {
         );
       }
 
-      const result = await getVerificationService().verifyCode(phone, code);
+      // 전화번호를 정규화된 형식으로 변환
+      const normalizedPhone = cleanPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      const result = await getVerificationService().verifyCode(normalizedPhone, code);
 
       if (!result.success) {
         // 프로덕션에서는 구체적인 오류 숨김
