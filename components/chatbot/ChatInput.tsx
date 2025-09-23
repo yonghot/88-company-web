@@ -36,10 +36,12 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  // 전화번호 유효성 검사 함수 (010으로 시작하는 11자리만 허용)
+  // 전화번호 유효성 검사 함수 (서버와 동일한 검증 로직)
   const validatePhoneNumber = (value: string) => {
     const numbers = value.replace(/\D/g, '');
-    return numbers.length === 11 && numbers.startsWith('010');
+    // 010, 011, 016, 017, 018, 019로 시작하는 11자리 번호 허용
+    const validPrefixes = ['010', '011', '016', '017', '018', '019'];
+    return numbers.length === 11 && validPrefixes.some(prefix => numbers.startsWith(prefix));
   };
 
   const handlePhoneInputChange = (value: string) => {
