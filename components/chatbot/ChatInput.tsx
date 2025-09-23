@@ -208,7 +208,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
         <div className="mt-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">
             {currentStep.inputType === 'phone'
-              ? '010으로 시작하는 번호 (예: 010-1234-5678)'
+              ? '휴대폰 번호를 입력하세요 (예: 010-1234-5678)'
               : currentStep.inputType === 'email'
               ? '예: example@email.com'
               : <span className="hidden sm:inline">Enter키를 눌러 전송하세요</span>}
