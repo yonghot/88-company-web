@@ -68,7 +68,7 @@ async function testProductionAPI() {
         expected: testCase.expected,
         actual: 'error',
         passed: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   }
