@@ -351,21 +351,25 @@ export class VerificationService {
 
     if (isSupabaseConfigured() && supabase) {
       // 기존 코드 삭제
-      await supabase
+      const deleteResult = await supabase
         .from('verification_codes')
         .delete()
         .eq('phone', phone);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[저장] 기존 코드 삭제 결과:', deleteResult);
+      }
 
       // 새 코드 저장
       const insertResult = await supabase
         .from('verification_codes')
         .insert({
           phone,
-          code,
+          code: String(code).trim(),  // 문자열로 변환하고 공백 제거
           expires_at: expiresAt.toISOString(),
-          attempts: 0,
           created_at: new Date().toISOString()
-        });
+        })
+        .select();  // INSERT 후 결과 반환
 
       // 프로덕션에서도 에러 로깅
       if (insertResult.error) {
@@ -374,7 +378,13 @@ export class VerificationService {
       }
 
       if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
-        console.log('[VERIFY] 저장 완료:', { phone, code: '******' });
+        console.log('[VERIFY] INSERT 결과:', {
+          status: insertResult.status,
+          statusText: insertResult.statusText,
+          data: insertResult.data,
+          error: insertResult.error
+        });
+        console.log('[VERIFY] 저장 완료:', { phone, code: '******', expiresAt: expiresAt.toISOString() });
       }
     } else {
       // 메모리 저장
@@ -392,30 +402,46 @@ export class VerificationService {
     }
 
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase
+      const queryResult = await supabase
         .from('verification_codes')
         .select('*')
         .eq('phone', phone)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+
+      const { data, error } = queryResult;
 
       // 프로덕션에서도 로깅
       if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
         console.log('[VERIFY] 조회 시도:', { phone });
-        console.log('[VERIFY] 조회 결과:', { found: !!data, error: error?.message });
+        console.log('[VERIFY] 조회 쿼리 결과:', {
+          status: queryResult.status,
+          statusText: queryResult.statusText,
+          dataLength: data?.length,
+          data: data,
+          error: error
+        });
       }
 
-      if (data) {
+      if (error) {
+        console.error('[VERIFY] 조회 오류:', error);
+        return null;
+      }
+
+      if (data && data.length > 0) {
+        const record = data[0]; // 가장 최근 레코드 사용
+        console.log('[VERIFY] 레코드 찾음:', { phone: record.phone, code: '******', expires_at: record.expires_at });
         return {
-          phone: data.phone,
-          code: String(data.code), // 문자열로 변환
-          expiresAt: new Date(data.expires_at),
-          attempts: data.attempts || 0,
-          createdAt: new Date(data.created_at),
+          phone: record.phone,
+          code: String(record.code).trim(), // 문자열로 변환하고 공백 제거
+          expiresAt: new Date(record.expires_at),
+          attempts: 0, // DB에 컬럼이 없으므로 기본값 사용
+          createdAt: new Date(record.created_at),
           verified: false
         };
       }
+
+      console.log('[VERIFY] 레코드를 찾을 수 없음:', { phone });
     } else {
       return this.memoryStore.get(phone) || null;
     }
@@ -441,25 +467,14 @@ export class VerificationService {
    * 시도 횟수 증가
    */
   private async incrementAttempts(phone: string): Promise<void> {
-    if (isSupabaseConfigured() && supabase) {
-      const { data } = await supabase
-        .from('verification_codes')
-        .select('attempts')
-        .eq('phone', phone)
-        .single();
-
-      if (data) {
-        await supabase
-          .from('verification_codes')
-          .update({ attempts: (data.attempts || 0) + 1 })
-          .eq('phone', phone);
-      }
-    } else {
+    // DB에 attempts 컬럼이 없으므로 메모리에서만 관리
+    if (!isSupabaseConfigured() || !supabase) {
       const code = this.memoryStore.get(phone);
       if (code) {
         code.attempts++;
       }
     }
+    // Supabase 사용 시에는 attempts 추적하지 않음 (컬럼 없음)
   }
 
 
