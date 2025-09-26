@@ -58,13 +58,15 @@ export async function POST(request: NextRequest) {
 
     if (isSupabaseConfigured() && supabase) {
       // Use Supabase
+      // Map step names directly to database columns
       const leadData = {
         id: phoneId,
-        service: body.service,
-        budget: body.budget,
-        timeline: body.timeline,
-        message: body.message || '',
-        name: body.name,
+        welcome: body.welcome || body.service || '',  // Support both old and new field names
+        custom_service: body.customService || body.custom_service || '',
+        budget: body.budget || '',
+        timeline: body.timeline || '',
+        details: body.details || body.message || '',  // Support both old and new field names
+        name: body.name || '',
         phone: body.phone,
         verified: body.verified || false,
       };
@@ -117,11 +119,12 @@ export async function POST(request: NextRequest) {
         // This is not ideal but prevents 500 errors
         const lead = {
           id: phoneId,
-          service: body.service,
-          budget: body.budget,
-          timeline: body.timeline,
-          message: body.message || '',
-          name: body.name,
+          welcome: body.welcome || body.service || '',
+          custom_service: body.customService || body.custom_service || '',
+          budget: body.budget || '',
+          timeline: body.timeline || '',
+          details: body.details || body.message || '',
+          name: body.name || '',
           phone: body.phone,
           verified: body.verified || false,
           createdAt: new Date().toISOString(),

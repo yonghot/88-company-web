@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase-admin';
 import { SMSService } from './sms-service';
 import { rateLimiter } from './rate-limiter';
 import { VerificationCode } from './types';
@@ -317,8 +318,9 @@ export class VerificationService {
    * 중복 전화번호 확인
    */
   private async checkDuplicatePhone(phone: string): Promise<boolean> {
-    if (isSupabaseConfigured() && supabase) {
-      const { data } = await supabase
+    const dbClient = supabaseAdmin || supabase;
+    if (isSupabaseConfigured() && dbClient) {
+      const { data } = await dbClient
         .from('leads')
         .select('id')
         .eq('id', phone)
@@ -349,9 +351,11 @@ export class VerificationService {
       console.log('[저장] 저장할 데이터:', { phone, code });
     }
 
-    if (isSupabaseConfigured() && supabase) {
+    // Admin 클라이언트를 우선 사용 (RLS 우회), 없으면 일반 클라이언트 사용
+    const dbClient = supabaseAdmin || supabase;
+    if (isSupabaseConfigured() && dbClient) {
       // 기존 코드 삭제
-      const deleteResult = await supabase
+      const deleteResult = await dbClient
         .from('verification_codes')
         .delete()
         .eq('phone', phone);
@@ -361,7 +365,7 @@ export class VerificationService {
       }
 
       // 새 코드 저장
-      const insertResult = await supabase
+      const insertResult = await dbClient
         .from('verification_codes')
         .insert({
           phone,
@@ -401,8 +405,10 @@ export class VerificationService {
       console.log('[조회] Supabase 구성됨:', isSupabaseConfigured());
     }
 
-    if (isSupabaseConfigured() && supabase) {
-      const queryResult = await supabase
+    // Admin 클라이언트를 우선 사용 (RLS 우회), 없으면 일반 클라이언트 사용
+    const dbClient = supabaseAdmin || supabase;
+    if (isSupabaseConfigured() && dbClient) {
+      const queryResult = await dbClient
         .from('verification_codes')
         .select('*')
         .eq('phone', phone)
@@ -453,8 +459,9 @@ export class VerificationService {
    * 인증번호 삭제
    */
   private async deleteVerificationCode(phone: string): Promise<void> {
-    if (isSupabaseConfigured() && supabase) {
-      await supabase
+    const dbClient = supabaseAdmin || supabase;
+    if (isSupabaseConfigured() && dbClient) {
+      await dbClient
         .from('verification_codes')
         .delete()
         .eq('phone', phone);
@@ -519,8 +526,9 @@ export class VerificationService {
     }
 
     // Supabase 정리
-    if (isSupabaseConfigured() && supabase) {
-      const { data } = await supabase
+    const dbClient = supabaseAdmin || supabase;
+    if (isSupabaseConfigured() && dbClient) {
+      const { data } = await dbClient
         .from('verification_codes')
         .delete()
         .lt('expires_at', now.toISOString());

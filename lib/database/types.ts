@@ -1,15 +1,16 @@
 // Database schema types for Supabase tables
 
-// Lead table schema
+// Lead table schema - Updated to match actual step names
 export interface DbLead {
   id: string; // phone number as ID
-  service: string;
-  budget: string;
-  timeline: string;
-  message: string;
-  name: string;
-  phone: string;
-  verified: boolean;
+  welcome: string;        // Service type selection
+  custom_service: string; // Custom service details
+  budget: string;         // Budget range
+  timeline: string;       // Project timeline
+  details: string;        // Additional details
+  name: string;           // Customer name
+  phone: string;          // Phone number
+  verified: boolean;      // Phone verification status
   created_at: string;
   updated_at?: string;
 }

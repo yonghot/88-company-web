@@ -251,16 +251,16 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
                   setError('');
                 }
               }}
-              placeholder="인증번호 6자리를 입력하세요"
+              placeholder="6자리 입력"
               disabled={disabled || isVerified || timer === 0}
               maxLength={6}
               autoComplete="one-time-code"
               inputMode="numeric"
               pattern="[0-9]*"
               className={cn(
-                'w-full px-4 py-4 pr-24',
+                'w-full px-3 sm:px-4 py-3 sm:py-4 pr-20 sm:pr-24',
                 'bg-[#252B3B] border-2 rounded-xl',
-                'text-gray-200 placeholder:text-gray-500 text-center text-xl tracking-[0.5em] font-mono',
+                'text-gray-200 placeholder:text-gray-500 text-center text-lg sm:text-xl tracking-[0.3em] sm:tracking-[0.5em] font-mono',
                 'transition-all duration-300',
                 'focus:border-[#00E5DB] focus:ring-2 focus:ring-[#00E5DB]/30',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -284,7 +284,7 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
                 onClick={handleVerify}
                 disabled={disabled || code.length !== 6 || isLoading || timer === 0}
                 className={cn(
-                  'absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-lg',
+                  'absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg',
                   'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
                   'hover:shadow-[0_0_20px_rgba(0,229,219,0.5)] active:scale-95',
                   'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none',

@@ -99,7 +99,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               <button
                 key={option}
                 className={cn(
-                  'group relative px-4 py-3 rounded-xl text-left transition-all duration-200',
+                  'group relative px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-left transition-all duration-200',
                   'border hover:shadow-md hover:border-[#00E5DB] hover:-translate-y-0.5',
                   'active:scale-[0.98]',
                   selectedOption === option
@@ -140,7 +140,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               placeholder={currentStep.placeholder}
               disabled={disabled}
               className={cn(
-                'w-full min-h-[100px] resize-none px-4 py-3 pr-12',
+                'w-full min-h-[80px] sm:min-h-[100px] resize-none px-3 sm:px-4 py-2.5 sm:py-3 pr-10 sm:pr-12',
                 'bg-[#252B3B] border border-[#2E3544] rounded-xl',
                 'text-gray-200 placeholder:text-gray-500',
                 'focus:border-[#00E5DB] focus:ring-2 focus:ring-[#00E5DB]/30',
@@ -151,7 +151,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
               onClick={handleSubmit}
               disabled={disabled || !inputValue.trim()}
               className={cn(
-                'absolute bottom-3 right-3 p-2.5 sm:p-2 rounded-lg',
+                'absolute bottom-2 sm:bottom-3 right-2 sm:right-3 p-2 sm:p-2.5 rounded-lg',
                 'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
                 'hover:shadow-[0_0_15px_rgba(0,229,219,0.4)] active:scale-95',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -183,7 +183,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
             disabled={disabled}
             maxLength={currentStep.inputType === 'phone' ? 13 : undefined}
             className={cn(
-              'w-full px-4 py-3 pr-12',
+              'w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 sm:pr-12',
               'bg-[#252B3B] border border-[#2E3544] rounded-xl',
               'text-gray-200 placeholder:text-gray-500',
               'focus:border-[#00E5DB] focus:ring-2 focus:ring-[#00E5DB]/30',
@@ -194,7 +194,7 @@ export function ChatInput({ currentStep, onSubmit, disabled = false }: ChatInput
             onClick={handleSubmit}
             disabled={disabled || !inputValue.trim() || (currentStep.inputType === 'phone' && isPhoneValid === false)}
             className={cn(
-              'absolute right-2 top-1/2 -translate-y-1/2 p-2.5 sm:p-2 rounded-lg',
+              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 p-2 sm:p-2.5 rounded-lg',
               'bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900',
               'hover:shadow-[0_0_15px_rgba(0,229,219,0.4)] active:scale-95',
               'disabled:opacity-50 disabled:cursor-not-allowed',

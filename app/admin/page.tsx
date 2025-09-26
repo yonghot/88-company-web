@@ -45,13 +45,13 @@ export default function AdminPage() {
       filtered = filtered.filter(lead => 
         lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.service?.toLowerCase().includes(searchTerm.toLowerCase())
+        (lead.welcome || lead.service)?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // 서비스 필터링
     if (filterService !== 'all') {
-      filtered = filtered.filter(lead => lead.service === filterService);
+      filtered = filtered.filter(lead => (lead.welcome || lead.service) === filterService);
     }
 
     setFilteredLeads(filtered);
@@ -62,10 +62,11 @@ export default function AdminPage() {
     const worksheet = XLSX.utils.json_to_sheet(filteredLeads.map(lead => ({
       '이름': lead.name,
       '전화번호': lead.phone,
-      '서비스': lead.service,
-      '예산': lead.budget,
-      '시작시기': lead.timeline,
-      '상세내용': lead.message,
+      '서비스': lead.welcome || lead.service || '',
+      '예산': lead.budget || '',
+      '시작시기': lead.timeline || '',
+      '상세내용': lead.details || lead.message || '',
+      '기타문의': lead.customService || lead.custom_service || '',
       '등록일시': lead.createdAt ? new Date(lead.createdAt).toLocaleString('ko-KR') : ''
     })));
 
@@ -104,7 +105,7 @@ export default function AdminPage() {
   };
 
   // 서비스 목록 추출
-  const services = ['all', ...Array.from(new Set(leads.map(lead => lead.service).filter(Boolean)))];
+  const services = ['all', ...Array.from(new Set(leads.map(lead => lead.welcome || lead.service).filter(Boolean)))];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0D13] to-[#141821]">
@@ -314,14 +315,14 @@ export default function AdminPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-medium bg-[#00E5DB]/10 text-[#00E5DB] rounded-full border border-[#00E5DB]/20">
-                          {lead.service}
+                          {lead.welcome || lead.service || '-'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
-                        {lead.budget}
+                        {lead.budget || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
-                        {lead.timeline}
+                        {lead.timeline || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {lead.createdAt && new Date(lead.createdAt).toLocaleString('ko-KR')}
@@ -388,13 +389,20 @@ export default function AdminPage() {
                   
                   <div>
                     <label className="text-sm font-medium text-gray-400">시작 시기</label>
-                    <p className="text-gray-200">{selectedLead.timeline}</p>
+                    <p className="text-gray-200">{selectedLead.timeline || '-'}</p>
                   </div>
                   
-                  {selectedLead.message && (
+                  {(selectedLead.details || selectedLead.message) && (
                     <div>
                       <label className="text-sm font-medium text-gray-400">상세 내용</label>
-                      <p className="text-gray-200 whitespace-pre-wrap">{selectedLead.message}</p>
+                      <p className="text-gray-200 whitespace-pre-wrap">{selectedLead.details || selectedLead.message}</p>
+                    </div>
+                  )}
+
+                  {(selectedLead.customService || selectedLead.custom_service) && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">기타 문의</label>
+                      <p className="text-gray-200 whitespace-pre-wrap">{selectedLead.customService || selectedLead.custom_service}</p>
                     </div>
                   )}
                   
