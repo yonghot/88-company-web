@@ -227,6 +227,10 @@ So that 비용을 절감하면서도 합격 가능성을 높일 수 있다.
 - OAuth 2.0 소셜 로그인
 - OWASP Top 10 대응
 - GDPR/KISA 개인정보보호 가이드라인 준수
+- **Supabase RLS (Row Level Security) 정책 적용**
+  - 데이터베이스 레벨 보안 강화
+  - Service Role Key를 통한 관리자 권한 분리
+  - anon 사용자 권한 세분화
 
 ### 사용성 및 UX
 - 반응형 디자인 (Mobile First)
@@ -354,6 +358,7 @@ main (production)
 - 인증 코드 3분 만료 시간 설정
 - Rate Limiting 및 비용 최적화 기능
 - 대량 SMS 발송 지원
+- **[NEW] RLS 정책 호환 Admin Client 구현 (2025-01-24)**
 - Strategy Pattern을 활용한 프로바이더 추상화
 - **[NEW] 전화번호 형식 유효성 검사 강화 (2025-01-20)**
 - **[NEW] 잘못된 형식 입력 시 재입력 UI 제공 (2025-01-20)**
@@ -450,6 +455,7 @@ main (production)
 | 2025-09-14 | v3.1 | NHN Cloud SMS 통합, 코드 구조 최적화 완료 | - |
 | 2025-09-18 | v3.2 | 동적 질문 이동 로직 구현, 비활성 질문 건너뛰기, 동적 진행률 계산 | - |
 | 2025-09-19 | v3.3 | **Supabase 통합 완료, 질문 관리 UI/UX 대폭 개선, 환경설정 표준화** | - |
+| 2025-01-24 | v3.4 | **RLS 정책 오류 수정, Service Role Key 기반 Admin Client 구현** | - |
 | 2025-01-20 | v3.4 | **전화번호 유효성 검사 강화, localStorage 완전 제거, 데이터 소스 통합** | - |
 | 2025-01-22 | v3.5 | **NHN Cloud SMS 프로덕션 설정 완료, 코드베이스 클린업, TypeScript 오류 수정** | - |
 

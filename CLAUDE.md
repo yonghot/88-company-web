@@ -45,6 +45,8 @@ npm run build
 - **스타일링**: Tailwind CSS v3 + shadcn/ui
 - **데이터베이스**: Supabase (PostgreSQL) with 파일 시스템 폴백
 - **배포**: Vercel (Seoul region - icn1)
+- **UI 라이브러리**: Framer Motion, @dnd-kit (드래그 앤 드롭)
+- **데이터 처리**: xlsx (Excel 내보내기), uuid (고유 ID 생성)
 
 ## 주요 개발 명령어
 
@@ -168,9 +170,13 @@ export async function GET(
   - `questions.ts`: 정적 질문 정의 (폴백용)
 - **`lib/sms/`**: SMS 인증 (멀티 프로바이더 전략 패턴)
   - Strategy Pattern 구현으로 프로바이더 간 전환 용이
+  - `verification-service.ts`: 인증 서비스 (Admin Client 통합)
 - **`lib/database/`**: 데이터베이스 타입 및 스키마
   - `LeadData`, `VerificationData`, `ChatQuestion` 타입 정의
   - Supabase 클라이언트 설정 및 타입 호환성 보장
+- **`lib/supabase-admin.ts`**: RLS 우회를 위한 관리자 클라이언트
+  - Service Role Key 사용하여 RLS 정책 우회
+  - 서버 사이드 작업에서만 사용 (보안 중요)
 - **`components/admin/`**: 관리자 페이지 전용 컴포넌트
   - `QuestionCard.tsx`: 드래그 가능한 질문 카드 컴포넌트
   - `QuestionEditModal.tsx`: 종합 질문 편집 모달
@@ -189,6 +195,7 @@ export async function GET(
 # Supabase 설정 (영구 데이터 저장용 - 권장)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # RLS 정책 우회를 위한 관리자 키
 
 # SMS 프로바이더 설정
 SMS_PROVIDER=demo  # 옵션: demo, nhncloud, twilio, aligo
@@ -213,6 +220,9 @@ ADMIN_PASSWORD=your_admin_password  # 관리자 페이지 접근 비밀번호 (�
 
 # 개발 설정
 SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작동)
+
+# Supabase Service Role Key (RLS 우회용 - 선택사항)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # RLS 정책 우회를 위한 관리자 키
 ```
 
 ### 디자인 시스템
@@ -225,15 +235,17 @@ SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작�
 ### 대화 플로우 관리
 챗봇은 **실시간 동기화가 적용된 동적 플로우**를 사용합니다:
 
-**실시간 동적 플로우** (RealTimeQuestionService):
+**실시간 동적 플로우** (EnhancedRealTimeService):
 - `/admin/questions` 페이지에서 실시간 편집 가능
 - **실시간 자동 동기화**: 질문 수정 시 챗봇에 즉시 반영 (새로고침 불필요)
 - **동적 단계 계산**: 활성 질문 수에 따라 자동으로 진행 단계 수 조정
-- 드래그 앤 드롭으로 순서 변경
+- **드래그 앤 드롭**: @dnd-kit 라이브러리로 순서 변경
 - 질문 추가/삭제/수정 즉시 반영
 - **order_index 기반 동적 네비게이션**: 질문 순서에 따라 자동으로 다음 질문으로 이동
 - **비활성 질문 건너뛰기**: is_active가 false인 질문은 플로우에서 제외
-- **이벤트 기반 업데이트**: localStorage와 커스텀 이벤트를 통한 실시간 동기화
+- **Supabase 기반 동기화**: 실시간 데이터베이스 업데이트
+
+**중요**: `enhanced-realtime-service.ts`가 메인 서비스입니다 (싱글톤 패턴)
 
 표준 대화 단계 (동적으로 변경 가능):
 1. 환영 메시지 (서비스 선택) - 모든 선택지가 동일한 플로우 진행
@@ -267,13 +279,17 @@ SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작�
 **중요**: Supabase를 사용하지 않으면 도메인 변경 시 localStorage 데이터가 초기화됩니다.
 
 ### 테스트 접근법
-- `scripts/test-runner.ts`를 통한 테스트 실행
-- 테스트 카테고리: sms, environment, chat, database, verification, admin, realtime
-- 수동 테스트 필요 항목:
-  - 챗봇 대화 플로우
-  - 전화번호 인증 프로세스
+- **테스트 실행**: `scripts/test-runner.ts`를 통한 통합 테스트 실행
+- **테스트 카테고리**: sms, environment, chat, database, verification, admin, realtime
+- **성능/보안 테스트**: `test-performance-security.ts`
+- **전화번호 유효성**: `test-phone-validation.ts`
+- **실시간 동기화**: `test-realtime-sync.ts`
+- **수동 테스트 필요 항목**:
+  - 챗봇 대화 플로우 E2E
+  - 전화번호 인증 전체 프로세스
   - 관리자 대시보드 기능
   - Excel 내보내기 기능
+  - 질문 드래그 앤 드롭
 
 ## 특별 고려사항
 
@@ -308,6 +324,26 @@ lsof -ti:3000 | xargs kill -9
 - Next.js 15의 서버 컴포넌트 활용으로 초기 로드 시간 단축
 - 이미지 최적화: next/image 컴포넌트 사용
 - 폰트 최적화: next/font 사용
+
+## 보안 고려사항
+
+### Supabase RLS (Row Level Security)
+- **Service Role Key**: 서버 사이드에서만 사용 (`lib/supabase-admin.ts`)
+- **Anon Key**: 클라이언트 사이드에서 사용
+- **RLS 정책**: `supabase/apply-safe-rls-policy.sql` 참조
+- **관리자 인증**: ADMIN_PASSWORD 환경 변수로 보호
+
+### SMS 인증 보안
+- **Rate Limiting**: IP당 시간당 제한
+- **HMAC 검증**: 요청 무결성 확인
+- **타임아웃**: 3분 만료 시간
+- **중복 방지**: 전화번호당 하나의 인증 코드만 유효
+
+### Next.js 보안 헤더
+- X-Frame-Options: DENY
+- X-Content-Type-Options: nosniff
+- X-XSS-Protection: 1; mode=block
+- Strict-Transport-Security: HSTS 적용
 
 ## 알려진 문제와 해결방법
 
@@ -381,6 +417,20 @@ lsof -ti:3000 | xargs kill -9
 - 해결: `sendNo.replace(/-/g, '')` 하이픈 제거 처리
 - 프로덕션 필수 설정: Vercel 환경변수 설정 필요 (VERCEL_DEPLOYMENT_GUIDE.md 참조)
 - 디버그 API: `/api/debug-sms`로 SMS 설정 상태 확인 가능
+
+### Supabase RLS (Row Level Security) 정책 오류
+**문제**: SMS 인증 시 "new row violates row-level security policy" 오류
+- 증상: verification_codes 테이블에 데이터 삽입 실패 (PostgreSQL error 42501)
+- 원인: anon 사용자에게 테이블 접근 권한 없음
+- 해결 방법 (3가지):
+  1. **RLS 정책 수정** (권장): anon 사용자에게 필요한 권한 부여
+  2. **Service Role Key 사용**: RLS를 우회하는 관리자 클라이언트 사용
+  3. **RLS 비활성화**: 긴급 상황에서만 사용 (보안 위험)
+- 구현:
+  - `lib/supabase-admin.ts`: Service Role Key를 사용하는 관리자 클라이언트
+  - `supabase/apply-safe-rls-policy.sql`: 안전한 RLS 정책 적용 SQL
+  - `RLS_적용_가이드.md`: 단계별 적용 가이드
+- 교훈: RLS 정책 설정 시 서비스 요구사항 충분히 고려
 
 ### 배포 참고사항
 - **플랫폼**: Vercel

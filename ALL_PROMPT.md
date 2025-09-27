@@ -371,6 +371,35 @@ nhn cloud의 발신번호 등록이 완료됐는데 인증 문자가 발송이 �
 
 ---
 
+### 2025-01-24
+
+#### Supabase RLS 정책 오류 해결 요청
+```
+[VERIFY] Supabase insert 실패: {...} 인증번호 발송 오류: Error: 인증번호 저장 실패: new row violates row-level security policy for table 'verification_codes'
+```
+
+#### 안정적인 해결책 요청
+```
+급하게 해결할 필요는 없어. 안정성 측면에서 가장 추천하는 해결책은 뭐야?
+```
+
+#### 즉시 적용 요청
+```
+좋아 지금 당장 적용해줘
+```
+
+#### 해결책 설명 요청
+```
+지금 적용한 해결책을 자세히 설명해줄수 있어? 잘 이해가 안가네
+```
+
+#### 문서 업데이트 요청
+```
+/sc:document @CLAUDE.md @PRD.md @ALL_PROMPT.md @DESIGN.md '지금까지 작업한 내용을 반영이 '필요'한 모든 .md 파일들에 최신화시켜 줘' --persona-architect --think-hard --seq --c7
+```
+
+---
+
 <!-- 새로운 프롬프트는 아래에 추가됩니다 -->
 
 ---
