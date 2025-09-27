@@ -1,5 +1,6 @@
 import { ChatQuestion } from './dynamic-types';
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
+import { backupService } from './backup-service';
 
 interface ChatFlowStep {
   id: string;
@@ -275,34 +276,74 @@ export class EnhancedRealtimeService {
     this.pendingUpdates = questions;
 
     try {
-      const { error: deleteError } = await this.supabase
+      // 백업: 현재 데이터를 먼저 가져옴
+      const { data: currentQuestions } = await this.supabase
         .from('chat_questions')
-        .delete()
-        .neq('step', '');
+        .select('*');
 
-      if (deleteError) {
-        console.error('[EnhancedRealtimeService] Delete error:', deleteError);
+      // 자동 백업 생성 (서버 사이드에서만)
+      if (typeof window === 'undefined' && currentQuestions && currentQuestions.length > 0) {
+        await backupService.createBackup(currentQuestions, 'auto_before_save');
       }
 
+      // UPSERT 방식으로 변경 - 삭제 없이 업데이트/삽입만 수행
       const questionsWithDefaults = questions.map(q => ({
         ...q,
         id: q.id || undefined,
         created_at: q.created_at || undefined,
-        updated_at: q.updated_at || undefined
+        updated_at: new Date().toISOString()
       }));
 
-      const { error: insertError } = await this.supabase
-        .from('chat_questions')
-        .insert(questionsWithDefaults);
+      // 트랜잭션적 접근: 개별 작업으로 나누어 처리
+      const errors = [];
 
-      if (insertError) {
-        console.error('[EnhancedRealtimeService] Insert error:', insertError);
-        return false;
+      // 1. 먼저 모든 질문을 비활성화
+      const { error: deactivateError } = await this.supabase
+        .from('chat_questions')
+        .update({ is_active: false })
+        .neq('step', '');
+
+      if (deactivateError) {
+        console.error('[EnhancedRealtimeService] Deactivate error:', deactivateError);
+      }
+
+      // 2. 각 질문을 UPSERT (있으면 업데이트, 없으면 삽입)
+      for (const question of questionsWithDefaults) {
+        const { error } = await this.supabase
+          .from('chat_questions')
+          .upsert(question, { onConflict: 'step' });
+
+        if (error) {
+          errors.push({ step: question.step, error });
+          console.error(`[EnhancedRealtimeService] Upsert error for ${question.step}:`, error);
+        }
+      }
+
+      // 3. 새 질문 목록에 없는 기존 질문들 삭제
+      const newSteps = questions.map(q => q.step);
+      const { error: cleanupError } = await this.supabase
+        .from('chat_questions')
+        .delete()
+        .not('step', 'in', `(${newSteps.map(s => `'${s}'`).join(',')})`);
+
+      if (cleanupError && cleanupError.code !== '23503') {
+        console.error('[EnhancedRealtimeService] Cleanup error:', cleanupError);
+      }
+
+      // 에러가 있었지만 일부 성공한 경우
+      if (errors.length > 0) {
+        console.warn(`[EnhancedRealtimeService] Saved with ${errors.length} errors`);
+        // 롤백이 필요한 경우 백업 데이터 복원
+        if (errors.length === questions.length && currentQuestions) {
+          console.error('[EnhancedRealtimeService] All operations failed, attempting rollback');
+          await this.rollbackQuestions(currentQuestions);
+          return false;
+        }
       }
 
       this.questionsCache = questions;
       this.updateStatus({ lastSync: new Date() });
-      console.log('[EnhancedRealtimeService] Saved', questions.length, 'questions');
+      console.log('[EnhancedRealtimeService] Successfully saved', questions.length, 'questions');
 
       setTimeout(() => {
         this.lastUpdateSource = null;
@@ -313,6 +354,31 @@ export class EnhancedRealtimeService {
     } catch (error) {
       console.error('[EnhancedRealtimeService] Save error:', error);
       return false;
+    }
+  }
+
+  private async rollbackQuestions(questions: any[]): Promise<void> {
+    if (!this.supabase) return;
+
+    console.log('[EnhancedRealtimeService] Attempting rollback with', questions.length, 'questions');
+
+    try {
+      // 모든 질문 비활성화
+      await this.supabase
+        .from('chat_questions')
+        .update({ is_active: false })
+        .neq('step', '');
+
+      // 백업 데이터 복원
+      for (const question of questions) {
+        await this.supabase
+          .from('chat_questions')
+          .upsert(question, { onConflict: 'step' });
+      }
+
+      console.log('[EnhancedRealtimeService] Rollback completed successfully');
+    } catch (error) {
+      console.error('[EnhancedRealtimeService] Rollback failed:', error);
     }
   }
 

@@ -33,7 +33,9 @@ import {
   ChevronLeft,
   Wifi,
   WifiOff,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Upload
 } from 'lucide-react';
 
 import QuestionCard from '@/components/admin/QuestionCard';
@@ -278,6 +280,68 @@ export default function EnhancedQuestionsManagement() {
     showSuccess();
   };
 
+  const handleBackup = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/admin/questions/backups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'create',
+          questions
+        })
+      });
+
+      if (response.ok) {
+        alert('백업이 성공적으로 생성되었습니다.');
+      } else {
+        alert('백업 생성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Backup error:', error);
+      alert('백업 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!confirm('최신 백업으로 복구하시겠습니까? 현재 데이터는 덮어씌워집니다.')) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/admin/questions/backups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'restore'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setQuestions(result.data);
+          await saveQuestions(result.data);
+          alert('백업에서 성공적으로 복구되었습니다.');
+        }
+      } else {
+        alert('복구할 백업이 없거나 복구에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Restore error:', error);
+      alert('복구 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const getConnectionStatusIcon = () => {
     switch (connectionStatus.state) {
       case 'connected':
@@ -335,6 +399,24 @@ export default function EnhancedQuestionsManagement() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleBackup}
+                disabled={isSaving}
+                className="p-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 transition-all"
+                title="백업 생성"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={handleRestore}
+                disabled={isSaving}
+                className="p-2 text-orange-500 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-200 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 disabled:opacity-50 transition-all"
+                title="백업 복구"
+              >
+                <Upload className="w-5 h-5" />
+              </button>
+
               <button
                 onClick={handleReload}
                 disabled={isSaving}
