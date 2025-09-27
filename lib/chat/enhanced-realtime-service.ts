@@ -272,6 +272,18 @@ export class EnhancedRealtimeService {
       return false;
     }
 
+    // 빈 배열로 저장 시도 방지 (데이터 손실 방지)
+    if (questions.length === 0) {
+      console.error('[EnhancedRealtimeService] CRITICAL: Attempted to save empty questions array - BLOCKED to prevent data loss');
+
+      // 현재 캐시에 데이터가 있다면 경고
+      if (this.questionsCache.length > 0) {
+        console.error('[EnhancedRealtimeService] WARNING: Cache has', this.questionsCache.length, 'questions but trying to save empty array');
+      }
+
+      return false;
+    }
+
     this.lastUpdateSource = 'local';
     this.pendingUpdates = questions;
 
@@ -319,15 +331,21 @@ export class EnhancedRealtimeService {
         }
       }
 
-      // 3. 새 질문 목록에 없는 기존 질문들 삭제
+      // 3. 새 질문 목록에 없는 기존 질문들 삭제 (빈 배열 체크 필수!)
       const newSteps = questions.map(q => q.step);
-      const { error: cleanupError } = await this.supabase
-        .from('chat_questions')
-        .delete()
-        .not('step', 'in', `(${newSteps.map(s => `'${s}'`).join(',')})`);
 
-      if (cleanupError && cleanupError.code !== '23503') {
-        console.error('[EnhancedRealtimeService] Cleanup error:', cleanupError);
+      // 빈 배열일 때는 DELETE 쿼리 실행하지 않음
+      if (newSteps.length > 0) {
+        const { error: cleanupError } = await this.supabase
+          .from('chat_questions')
+          .delete()
+          .not('step', 'in', `(${newSteps.map(s => `'${s}'`).join(',')})`);
+
+        if (cleanupError && cleanupError.code !== '23503') {
+          console.error('[EnhancedRealtimeService] Cleanup error:', cleanupError);
+        }
+      } else {
+        console.warn('[EnhancedRealtimeService] Skipping cleanup - no questions to preserve');
       }
 
       // 에러가 있었지만 일부 성공한 경우

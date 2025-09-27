@@ -117,6 +117,7 @@ export default function EnhancedQuestionsManagement() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     state: 'disconnected',
     lastSync: null,
@@ -140,10 +141,15 @@ export default function EnhancedQuestionsManagement() {
       // Initial questions loaded
       setQuestions(currentQuestions);
     }
+    // 빈 배열이면 상태를 변경하지 않음 (기존 데이터 유지)
 
     const unsubscribeQuestions = enhancedRealtimeService.subscribeToQuestions((updatedQuestions) => {
-      // Questions updated
-      setQuestions(updatedQuestions);
+      // Questions updated - 빈 배열 체크
+      if (updatedQuestions.length > 0) {
+        setQuestions(updatedQuestions);
+      } else {
+        console.warn('[QuestionsPage] Received empty questions from service, ignoring update');
+      }
     });
 
     const unsubscribeStatus = enhancedRealtimeService.subscribeToStatus((status) => {
@@ -154,6 +160,10 @@ export default function EnhancedQuestionsManagement() {
     // 비동기로 최신 데이터 로드
     enhancedRealtimeService.forceRefresh().then(() => {
       // Force refresh completed
+      const refreshedQuestions = enhancedRealtimeService.getQuestions();
+      if (refreshedQuestions.length > 0) {
+        setQuestions(refreshedQuestions);
+      }
     });
 
     return () => {
@@ -161,6 +171,23 @@ export default function EnhancedQuestionsManagement() {
       unsubscribeStatus();
     };
   }, []);
+
+  // 페이지 언로드 시 경고
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges || isEditModalOpen || isSaving) {
+        e.preventDefault();
+        e.returnValue = '변경사항이 저장되지 않았습니다. 페이지를 나가시겠습니까?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges, isEditModalOpen, isSaving]);
 
   useEffect(() => {
     let filtered = questions;
@@ -192,6 +219,12 @@ export default function EnhancedQuestionsManagement() {
 
       const newQuestions = arrayMove(questions, oldIndex, newIndex);
 
+      // 빈 배열 체크
+      if (newQuestions.length === 0) {
+        console.error('[QuestionsPage] DragEnd resulted in empty array, aborting');
+        return;
+      }
+
       newQuestions.forEach((q, i) => {
         q.order_index = i;
       });
@@ -202,11 +235,19 @@ export default function EnhancedQuestionsManagement() {
   };
 
   const saveQuestions = async (questionsToSave: ChatQuestion[]) => {
+    // 빈 배열 저장 방지
+    if (questionsToSave.length === 0) {
+      console.error('[QuestionsPage] Prevented saving empty questions array');
+      alert('⚠️ 경고: 빈 질문 목록은 저장할 수 없습니다.\n데이터 손실 방지를 위해 차단되었습니다.');
+      return;
+    }
+
     setIsSaving(true);
     const success = await enhancedRealtimeService.saveQuestions(questionsToSave);
     setIsSaving(false);
 
     if (success) {
+      setHasUnsavedChanges(false);
       showSuccess();
     } else {
       showError();
