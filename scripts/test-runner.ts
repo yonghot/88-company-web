@@ -114,14 +114,6 @@ const testModules: TestModule[] = [
       const { testAdminAuth } = await import('./test-admin-auth');
       await testAdminAuth();
     }
-  },
-  {
-    name: 'realtime',
-    description: 'Real-time synchronization test',
-    test: async () => {
-      const { testRealTimeSync } = await import('./test-realtime-sync');
-      await testRealTimeSync();
-    }
   }
 ];
 

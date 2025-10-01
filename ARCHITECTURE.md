@@ -51,10 +51,10 @@
 #### Chat Module (`lib/chat/`)
 - **목적**: 챗봇 대화 플로우 관리
 - **핵심 컴포넌트**:
-  - `RealTimeQuestionService`: 실시간 질문 동기화 (Singleton)
-  - `DynamicQuestionService`: 동적 질문 로드/저장
+  - `StaticQuestionService`: 정적 질문 로드 (Singleton)
   - `ChatFlowService`: 대화 플로우 제어
-- **패턴**: Observer Pattern (실시간 업데이트), Singleton Pattern
+  - `BackupService`: 자동 백업 시스템
+- **패턴**: Singleton Pattern
 
 #### SMS Module (`lib/sms/`)
 - **목적**: SMS 인증 및 발송
