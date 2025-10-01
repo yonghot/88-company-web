@@ -1,8 +1,11 @@
 #!/usr/bin/env node
+import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs/promises';
 import path from 'path';
 import { ChatQuestion } from '../lib/chat/dynamic-types';
+
+config({ path: path.join(process.cwd(), '.env.local') });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

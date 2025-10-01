@@ -18,9 +18,7 @@ export class StaticQuestionService {
   private isLoaded: boolean = false;
 
   private constructor() {
-    if (typeof window !== 'undefined') {
-      this.initializeSupabase();
-    }
+    this.initializeSupabase();
   }
 
   static getInstance(): StaticQuestionService {

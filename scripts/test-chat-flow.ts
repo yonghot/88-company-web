@@ -1,15 +1,13 @@
-import { DynamicQuestionService } from '../lib/chat';
+import { StaticQuestionService } from '../lib/chat/static-question-service';
 
 export async function testChatFlow() {
-  const service = new DynamicQuestionService();
+  const service = StaticQuestionService.getInstance();
 
-  console.log('Loading questions from localStorage...');
+  console.log('Loading questions from Supabase...');
   const questions = await service.loadQuestions();
-  console.log(`Found ${questions.size} questions`);
+  console.log(`Found ${questions.length} questions`);
 
-  const activeQuestions = Array.from(questions.values())
-    .filter(q => q.is_active)
-    .sort((a, b) => a.order_index - b.order_index);
+  const activeQuestions = service.getActiveQuestions();
 
   console.log(`Active questions: ${activeQuestions.length}`);
 
@@ -21,6 +19,9 @@ export async function testChatFlow() {
   activeQuestions.forEach((q, index) => {
     console.log(`  ${index + 1}. [${q.step}] ${q.question.substring(0, 50)}...`);
   });
+
+  const flow = service.getChatFlow();
+  console.log(`\nTotal steps in flow: ${Object.keys(flow).length}`);
 
   console.log('\n✅ Chat flow validated');
   return { questions: activeQuestions };
