@@ -187,9 +187,11 @@ export function ChatInterface() {
         throw new Error('Failed to save lead');
       }
 
-      const completeStep = chatFlow['complete'] || {
-        question: '🎉 등록이 완료되었습니다!\n\n빠른 시일 내에 연락드리겠습니다.\n88 Company와 함께 성공적인 창업을 시작하세요!'
-      };
+      const completeStep = chatFlow['complete'];
+      if (!completeStep) {
+        console.error('[ChatInterface] Complete step not found in chat flow');
+        return;
+      }
 
       const thankYouMessage: Message = {
         id: uuidv4(),
