@@ -92,18 +92,6 @@ export default function AdminPage() {
     XLSX.writeFile(workbook, `88_리드목록_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const deleteLead = async (id: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return;
-
-    try {
-      const response = await fetch(`/api/leads/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        fetchLeads();
-      }
-    } catch (error) {
-      console.error('Failed to delete lead:', error);
-    }
-  };
 
   const welcomeOptions = ['all', ...Array.from(new Set(leads.map(lead => lead.welcome).filter(Boolean)))];
 
@@ -264,19 +252,19 @@ export default function AdminPage() {
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">직업</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">지역</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">등록일시</th>
-
+                  <th className="px-4 py-4 text-center text-sm font-semibold text-gray-300">보기</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2E3544]">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                       데이터를 불러오는 중...
                     </td>
                   </tr>
                 ) : filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                       리드가 없습니다.
                     </td>
                   </tr>
@@ -314,14 +302,9 @@ export default function AdminPage() {
                           <button
                             onClick={() => setSelectedLead(lead)}
                             className="p-1 text-gray-400 hover:text-[#00E5DB] transition-colors"
+                            title="상세 정보 보기"
                           >
                             <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => lead.id && deleteLead(lead.id)}
-                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

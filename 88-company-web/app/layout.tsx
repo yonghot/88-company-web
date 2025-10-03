@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   keywords: "창업 컨설팅, 경영 컨설팅, 마케팅 전략, 투자 유치, 비즈니스 전략",
   authors: [{ name: "88 Company" }],
   openGraph: {
-    title: "88 Company - 정부지원금 합격 프로젝트",
-    description: "88만원으로 시작하는 정부지원금 합격 프로젝트",
+    title: "에이티에잇 컴퍼니",
+    description: "예비창업자를 위한 최저가 토털 솔루션",
     url: "https://www.88-company.com",
     siteName: "88 Company",
     images: [
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "88 Company - 정부지원금 합격 프로젝트",
-    description: "88만원으로 시작하는 정부지원금 합격 프로젝트",
+    title: "에이티에잇 컴퍼니",
+    description: "예비창업자를 위한 최저가 토털 솔루션",
     images: ["/og-image.png"],
   },
   robots: {
