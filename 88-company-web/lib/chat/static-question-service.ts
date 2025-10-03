@@ -16,6 +16,8 @@ export class StaticQuestionService {
   private supabase: SupabaseClient | null = null;
   private questionsCache: ChatQuestion[] = [];
   private isLoaded: boolean = false;
+  private cacheTimestamp: number = 0;
+  private cacheTTL: number = 5 * 60 * 1000;
 
   private constructor() {
     this.initializeSupabase();
@@ -45,9 +47,38 @@ export class StaticQuestionService {
     }
   }
 
+  private isCacheValid(): boolean {
+    if (!this.isLoaded || this.questionsCache.length === 0) {
+      return false;
+    }
+
+    const now = Date.now();
+    const cacheAge = now - this.cacheTimestamp;
+    const isValid = cacheAge < this.cacheTTL;
+
+    if (!isValid) {
+      console.log('[StaticQuestionService] Cache expired (age:', Math.round(cacheAge / 1000), 's)');
+    }
+
+    return isValid;
+  }
+
+  clearCache(): void {
+    console.log('[StaticQuestionService] Clearing cache manually');
+    this.questionsCache = [];
+    this.isLoaded = false;
+    this.cacheTimestamp = 0;
+  }
+
+  async refreshQuestions(): Promise<ChatQuestion[]> {
+    console.log('[StaticQuestionService] Force refreshing questions');
+    this.clearCache();
+    return this.loadQuestions();
+  }
+
   async loadQuestions(): Promise<ChatQuestion[]> {
-    if (this.isLoaded && this.questionsCache.length > 0) {
-      console.log('[StaticQuestionService] Using cached questions');
+    if (this.isCacheValid()) {
+      console.log('[StaticQuestionService] Using cached questions (valid for', Math.round((this.cacheTTL - (Date.now() - this.cacheTimestamp)) / 1000), 's)');
       return this.questionsCache;
     }
 
@@ -71,11 +102,13 @@ export class StaticQuestionService {
       if (data && data.length > 0) {
         this.questionsCache = data;
         this.isLoaded = true;
-        console.log('[StaticQuestionService] Successfully loaded', data.length, 'questions');
+        this.cacheTimestamp = Date.now();
+        console.log('[StaticQuestionService] Successfully loaded', data.length, 'questions (cached for', this.cacheTTL / 1000, 's)');
       } else {
         console.log('[StaticQuestionService] No questions found in database');
         this.questionsCache = [];
         this.isLoaded = true;
+        this.cacheTimestamp = Date.now();
       }
 
       return this.questionsCache;

@@ -18,7 +18,12 @@
     "test:database": "tsx scripts/test-runner.ts test database",
     "test:verification": "tsx scripts/test-runner.ts test verification",
     "test:admin": "tsx scripts/test-runner.ts test admin",
-    "test:realtime": "tsx scripts/test-runner.ts test realtime"
+    "test:realtime": "tsx scripts/test-runner.ts test realtime",
+    "backup": "tsx scripts/backup-database.ts",
+    "backup:leads": "tsx scripts/backup-database.ts -t leads",
+    "backup:questions": "tsx scripts/backup-database.ts -t questions",
+    "backup:stats": "tsx scripts/backup-database.ts -s",
+    "backup:cleanup": "tsx scripts/backup-database.ts -c"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

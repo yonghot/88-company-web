@@ -457,6 +457,42 @@ nhn cloud의 발신번호 등록이 완료됐는데 인증 문자가 발송이 �
 
 ---
 
+### 2025-10-04
+
+#### OG 이미지 배포 및 Favicon 설정 요청
+```
+og 이미지는 배포하면 언제 반영돼? 그리고 로컬에서 테스트 하려면? 그리고 파비콘도 기존 로고 사용하게 변경해줘. 그리고 thinking 과정 표시 안하게 해줘
+```
+
+#### Edit Tool 실패 후 직접 수정 요청
+```
+너가 직접 해줘
+```
+
+#### QA 테스트 실행
+```
+/sc:test --persona-qa --ultrathink --seq --c7
+```
+
+#### 아키텍처 클린업 요청
+```
+/sc:cleanup --persona-refactorer --focus architecture --ultrathink --seq --c7
+```
+
+#### Git 커밋 및 푸시
+```
+/sc:git "커밋하고 푸시해줘." --persona-devops --think --seq --c7
+```
+
+#### 프로젝트 문서 최신화 요청
+```
+/sc:document @CLAUDE.md @PRD.md @ALL_PROMPT.md @DESIGN.md
+"지금까지 작업한 내용을 반영이 '필요'한 모든 .md 파일들에 최신화시켜 줘"
+--persona-architect --ultrathink --seq --c7
+```
+
+---
+
 <!-- 새로운 프롬프트는 아래에 추가됩니다 -->
 
 ---

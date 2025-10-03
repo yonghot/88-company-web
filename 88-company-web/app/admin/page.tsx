@@ -12,6 +12,7 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterWelcome, setFilterWelcome] = useState('all');
   const [selectedLead, setSelectedLead] = useState<LeadData | null>(null);
+  const [refreshingCache, setRefreshingCache] = useState(false);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -26,6 +27,33 @@ export default function AdminPage() {
       console.error('Failed to fetch leads:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefreshCache = async () => {
+    const password = prompt('관리자 비밀번호를 입력하세요:');
+    if (!password) return;
+
+    setRefreshingCache(true);
+    try {
+      const response = await fetch('/api/admin/refresh-cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`캐시 새로고침 완료!\n- 질문 수: ${data.questionCount}\n- 시간: ${new Date(data.timestamp).toLocaleString('ko-KR')}`);
+      } else {
+        alert(data.error === 'Unauthorized' ? '비밀번호가 올바르지 않습니다.' : '캐시 새로고침에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to refresh cache:', error);
+      alert('캐시 새로고침에 실패했습니다.');
+    } finally {
+      setRefreshingCache(false);
     }
   };
 
@@ -70,7 +98,15 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="flex gap-2">
-<button
+              <button
+                onClick={handleRefreshCache}
+                disabled={refreshingCache}
+                className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#252B3B] rounded-lg hover:bg-[#00E5DB]/10 hover:text-[#00E5DB] border border-[#2E3544] hover:border-[#00E5DB]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshingCache ? 'animate-spin' : ''}`} />
+                {refreshingCache ? '새로고침 중...' : '캐시 새로고침'}
+              </button>
+              <button
                 onClick={() => window.location.href = '/'}
                 className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#252B3B] rounded-lg hover:bg-[#00E5DB]/10 hover:text-[#00E5DB] border border-[#2E3544] hover:border-[#00E5DB]/30 transition-all"
               >

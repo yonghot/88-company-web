@@ -556,6 +556,52 @@ lsof -ti:3000 | xargs kill -9
 - 실험적 스크립트는 즉시 정리
 - 성공한 방법만 메인에 보관
 - 정기적인 클린업으로 코드베이스 건강성 유지
+
+### Admin 페이지 및 보안 개선 (2025-10-04)
+**변경사항**: 관리자 페이지 테이블 완성도 개선 및 보안 강화
+
+**문제점**:
+- Admin 페이지 테이블이 일부 컬럼만 표시 (7개/12개)
+- 하드코딩된 Supabase credentials가 포함된 디버그 스크립트 존재
+- Favicon 설정 누락
+
+**해결 방법**:
+1. **Admin 페이지 테이블 완성** (`app/admin/page.tsx`):
+   - 누락된 컬럼 추가: experience, business_idea, gender, age
+   - 총 12개 컬럼 모두 표시 (name, phone, welcome, experience, business_idea, education, occupation, region, gender, age, createdAt, 보기)
+   - 테이블 헤더는 이미 완성되어 있었으나 테이블 바디가 불완전했던 상태 해결
+
+2. **보안 강화**:
+   - `check-phone-step.js` 삭제: 하드코딩된 Supabase URL 및 anon key 포함
+   - 교훈: 디버그 스크립트라도 credentials를 하드코딩하지 말고 환경 변수 사용
+
+3. **Favicon 설정 추가** (`app/layout.tsx`):
+   - 기존 88 로고(`/88-logo.png`)를 favicon으로 사용
+   - icons 메타데이터 설정 (icon, apple)
+
+4. **코드 정리** (5개 파일):
+   - `app/api/admin/db-status/route.ts`: 미사용 import 제거
+   - `app/api/leads/route.ts`: 미사용 error 변수 제거 (2곳)
+   - `components/chatbot/ChatInterface.tsx`: 미사용 타입 import 제거
+   - `app/api/verify/route.ts`: 미사용 SMSService import 제거
+   - `lib/sms/verification-service.ts`: 미사용 config 함수 import 제거
+
+**Git 커밋 (dfee15f)**:
+- 변경 파일: 11개
+- 코드 변경: +36/-81 lines
+- 커밋 메시지: "feat: Admin 페이지 테이블 완성, favicon 설정, 보안 개선"
+
+**성과**:
+- Admin 페이지에서 모든 리드 정보 확인 가능
+- 보안 취약점 제거 (하드코딩된 credentials 삭제)
+- Favicon 설정으로 브랜드 일관성 확보
+- ESLint 이슈 감소 (~70개 → ~65개, 7% 개선)
+
+**교훈**:
+- Edit Tool 실패 시 Python 스크립트를 통한 대안 사용 가능
+- 디버그 스크립트도 보안 검토 필수
+- 작은 개선 사항도 누적되면 큰 효과
+- 코드 정리는 지속적으로 수행
 ## 향후 개선사항
 - ~~실제 SMS 프로바이더 통합~~ ✅ (멀티 프로바이더 지원 완료)
 - ~~동적 질문 관리 시스템~~ ✅ (실시간 동기화 완료)
