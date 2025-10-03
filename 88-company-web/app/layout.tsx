@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "88 Company - 정부지원금 합격 프로젝트",
     description: "88만원으로 시작하는 정부지원금 합격 프로젝트",
-    url: "https://88company.co.kr",
+    url: "https://www.88-company.com",
     siteName: "88 Company",
     images: [
       {
