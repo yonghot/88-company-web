@@ -90,13 +90,11 @@ export class StaticQuestionService {
   }
 
   getActiveQuestions(): ChatQuestion[] {
-    return this.questionsCache
-      .filter(q => q.is_active === true)
-      .sort((a, b) => a.order_index - b.order_index);
+    return this.questionsCache.sort((a, b) => a.order_index - b.order_index);
   }
 
   getTotalSteps(): number {
-    return this.getActiveQuestions().length;
+    return this.questionsCache.length;
   }
 
   getChatFlow(): Record<string, ChatFlowStep> {
@@ -105,19 +103,23 @@ export class StaticQuestionService {
 
     activeQuestions.forEach((question, index) => {
       const nextQuestion = activeQuestions[index + 1];
+      const stepId = `step_${question.order_index}`;
 
-      flow[question.step] = {
-        id: question.step,
+      flow[stepId] = {
+        id: stepId,
         question: question.question,
         inputType: this.getInputType(question),
         placeholder: question.placeholder,
         options: question.options,
         validation: this.getValidation(question),
-        nextStep: this.createNextStepFunction(question, nextQuestion)
+        nextStep: this.createNextStepFunction(question, nextQuestion, index)
       };
     });
 
-    if (flow['phone']) {
+    const phoneStepIndex = activeQuestions.findIndex(q => q.type === 'phone');
+    if (phoneStepIndex !== -1) {
+      const phoneStepId = `step_${activeQuestions[phoneStepIndex].order_index}`;
+      
       flow['phoneVerification'] = {
         id: 'phoneVerification',
         question: '📱 인증번호 6자리를 입력해주세요.',
@@ -127,7 +129,7 @@ export class StaticQuestionService {
         nextStep: () => 'complete'
       };
 
-      flow['phone'].nextStep = () => 'phoneVerification';
+      flow[phoneStepId].nextStep = () => 'phoneVerification';
     }
 
     if (!flow['complete']) {
@@ -143,7 +145,7 @@ export class StaticQuestionService {
   }
 
   private getInputType(question: ChatQuestion): 'text' | 'textarea' | 'select' | 'phone' | 'email' {
-    if (question.step === 'phone') return 'phone';
+    if (question.type === 'phone') return 'phone';
 
     switch (question.type) {
       case 'select':
@@ -157,7 +159,7 @@ export class StaticQuestionService {
   }
 
   private getValidation(question: ChatQuestion): ((value: string) => boolean) | undefined {
-    if (question.step === 'phone') {
+    if (question.type === 'phone') {
       return (value: string) => {
         const cleanedValue = value.replace(/[\s-]/g, '');
         const phoneRegex = /^01[0-9]{9}$/;
@@ -165,12 +167,15 @@ export class StaticQuestionService {
       };
     }
 
-    if (question.step === 'name') {
-      return (value: string) => value.length >= 2;
-    }
-
-    if (question.validation?.required) {
-      return (value: string) => value.trim().length > 0;
+    if (question.validation) {
+      return (value: string) => {
+        const val = question.validation;
+        if (val?.required && value.trim().length === 0) return false;
+        if (val?.minLength && value.length < val.minLength) return false;
+        if (val?.maxLength && value.length > val.maxLength) return false;
+        if (val?.pattern && !new RegExp(val.pattern).test(value)) return false;
+        return true;
+      };
     }
 
     return undefined;
@@ -178,14 +183,15 @@ export class StaticQuestionService {
 
   private createNextStepFunction(
     question: ChatQuestion,
-    nextQuestion?: ChatQuestion
+    nextQuestion: ChatQuestion | undefined,
+    currentIndex: number
   ): (value?: string) => string {
     return (value?: string) => {
-      if (question.step === 'phone') return 'phoneVerification';
-      if (question.step === 'phoneVerification') return 'complete';
-
-      if (nextQuestion) return nextQuestion.step;
-      if (question.next_step) return question.next_step;
+      if (question.type === 'phone') return 'phoneVerification';
+      
+      if (nextQuestion) {
+        return `step_${nextQuestion.order_index}`;
+      }
 
       return 'complete';
     };

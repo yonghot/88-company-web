@@ -17,7 +17,7 @@ export async function testChatFlow() {
 
   console.log('\nChat flow sequence:');
   activeQuestions.forEach((q, index) => {
-    console.log(`  ${index + 1}. [${q.step}] ${q.question.substring(0, 50)}...`);
+    console.log(`  ${index + 1}. [step_${q.order_index}] ${q.question.substring(0, 50)}...`);
   });
 
   const flow = service.getChatFlow();

@@ -1,7 +1,6 @@
 export interface ChatQuestion {
   id?: string;
-  step: string;
-  type: 'text' | 'textarea' | 'select' | 'quick-reply' | 'verification';
+  type: 'text' | 'textarea' | 'select' | 'quick-reply' | 'verification' | 'phone';
   question: string;
   placeholder?: string;
   options?: string[];
@@ -11,8 +10,6 @@ export interface ChatQuestion {
     maxLength?: number;
     pattern?: string;
   };
-  next_step?: string;
-  is_active: boolean;
   order_index: number;
   created_at?: string;
   updated_at?: string;
