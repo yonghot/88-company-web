@@ -1,5 +1,5 @@
 # Subdirectory with its own Git repository
-88-company-web/
+# 88-company-web/  # Commented out: needed for Vercel deployment
 
 # IDE and editor files
 .vscode/
