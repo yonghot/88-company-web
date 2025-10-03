@@ -281,19 +281,19 @@ export function ChatInterface() {
                 onSelect={handleUserInput}
               />
             )}
-            {currentStep.inputType !== 'select' && chatState.currentStep !== 'phone' && (
+            {currentStep.inputType !== 'select' && currentStep.inputType !== 'phone' && (
               <ChatInput
                 currentStep={currentStep as ChatStep}
                 onSubmit={handleUserInput}
               />
             )}
-            {chatState.currentStep === 'phone' && !showVerification && (
+            {currentStep.inputType === 'phone' && !showVerification && (
               <ChatInput
                 currentStep={currentStep as ChatStep}
                 onSubmit={handlePhoneSubmit}
               />
             )}
-            {chatState.currentStep === 'phone' && showVerification && phoneNumber && (
+            {currentStep.inputType === 'phone' && showVerification && phoneNumber && (
               <VerificationInput
                 phoneNumber={phoneNumber}
                 onVerify={handleVerificationComplete}
