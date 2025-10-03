@@ -12,8 +12,10 @@ export interface DbLead {
   region?: string;                // Q4: 지역
   gender?: string;                // Q5: 성별
   age?: string;                   // Q6: 나이
-  name: string;                   // Q7: 고객 이름
-  phone: string;                  // Q8: 전화번호
+  education?: string;             // Q7: 최종 학력과 전공
+  occupation?: string;            // Q8: 현재 직업 상태
+  name: string;                   // Q9: 고객 이름
+  phone: string;                  // Q10: 전화번호
 
   // System fields
   verified: boolean;              // Phone verification status
@@ -41,6 +43,8 @@ export interface LeadFormData {
   welcome?: string;
   experience?: string;
   business_idea?: string;
+  education?: string;
+  occupation?: string;
   region?: string;
   gender?: string;
   age?: string;
