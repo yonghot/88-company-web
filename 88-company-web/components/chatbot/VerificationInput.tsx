@@ -32,6 +32,7 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
   const [verifyAttempts, setVerifyAttempts] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasInitialized = useRef(false);
   const MAX_ATTEMPTS = 5;
   const MAX_SEND_COUNT = 10;
 
@@ -165,11 +166,17 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
 
   // Auto-send verification code only if phone number is valid
   useEffect(() => {
+    // React Strict Mode에서 중복 실행 방지
+    if (hasInitialized.current) {
+      return;
+    }
+
     // 전화번호 형식 검증 (서버와 동일한 검증 로직)
     const cleaned = phoneNumber.replace(/[^0-9]/g, '');
     const isValidFormat = /^(010|011|016|017|018|019)\d{7,8}$/.test(cleaned) && cleaned.length === 11;
 
     if (isValidFormat) {
+      hasInitialized.current = true;
       sendVerificationCode();
     } else if (cleaned.length > 0) {
       // 형식이 올바르지 않으면 에러 메시지 표시 (빈 문자열일 때는 표시하지 않음)
