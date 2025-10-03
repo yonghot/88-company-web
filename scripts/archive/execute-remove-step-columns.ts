@@ -45,7 +45,7 @@ async function executeMigration() {
     console.log(JSON.stringify(result, null, 2));
 
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = createClient(supabaseUrl!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
     const { data: questions } = await supabase
       .from('chat_questions')
