@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { LeadData } from '@/lib/types';
 import * as XLSX from 'xlsx';
-import { Download, RefreshCw, Search, Filter, Trash2, Eye } from 'lucide-react';
+import { Download, RefreshCw, Search, Filter, Eye } from 'lucide-react';
 import Image from 'next/image';
 
 export default function AdminPage() {
@@ -121,13 +121,7 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => window.location.href = '/admin/questions'}
-                className="px-4 py-2 text-sm font-medium text-gray-300 bg-purple-600/20 rounded-lg hover:bg-purple-600/30 hover:text-purple-400 border border-purple-600/30 hover:border-purple-600/50 transition-all"
-              >
-                질문 관리
-              </button>
-              <button
+<button
                 onClick={() => window.location.href = '/'}
                 className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#252B3B] rounded-lg hover:bg-[#00E5DB]/10 hover:text-[#00E5DB] border border-[#2E3544] hover:border-[#00E5DB]/30 transition-all"
               >
@@ -270,19 +264,19 @@ export default function AdminPage() {
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">직업</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">지역</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">등록일시</th>
-                  <th className="px-4 py-4 text-center text-sm font-semibold text-gray-300">액션</th>
+
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2E3544]">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                       데이터를 불러오는 중...
                     </td>
                   </tr>
                 ) : filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                       리드가 없습니다.
                     </td>
                   </tr>

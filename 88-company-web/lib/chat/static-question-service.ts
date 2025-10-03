@@ -132,13 +132,23 @@ export class StaticQuestionService {
       flow[phoneStepId].nextStep = () => 'phoneVerification';
     }
 
-    if (!flow['complete']) {
+    const completeQuestion = this.questionsCache.find(q => q.order_index === 999);
+    if (completeQuestion) {
+      flow['complete'] = {
+        id: 'complete',
+        question: completeQuestion.question,
+        inputType: 'text',
+        nextStep: () => 'complete'
+      };
+      console.log('[StaticQuestionService] Loaded complete message from database');
+    } else {
       flow['complete'] = {
         id: 'complete',
         question: '등록이 완료되었습니다! 🎉\n\n빠른 시일 내에 88 Company에서 무료 유선 상담 연락을 드릴 예정입니다.\n\n창업 여정의 시작을 함께 하게 되어 기쁩니다.',
         inputType: 'text',
         nextStep: () => 'complete'
       };
+      console.warn('[StaticQuestionService] Complete message not found in database (order_index=999), using fallback');
     }
 
     return flow;
