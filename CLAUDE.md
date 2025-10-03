@@ -159,11 +159,9 @@ export async function GET(
   - `ChatMessage.tsx`: 메시지 표시 컴포넌트
   - `ChatInput.tsx`: 사용자 입력 컴포넌트
   - `VerificationInput.tsx`: 전화번호 인증 컴포넌트
-- **`scripts/`**: 유틸리티 및 마이그레이션 스크립트 (12개로 정리됨, 43개에서 72% 감소)
-  - **마이그레이션**:
-    - `migrate-to-supabase.ts`: 전체 데이터 마이그레이션
-    - `migrate-questions-to-supabase.ts`: 질문 데이터 전용 마이그레이션
-    - `run-sql-update.ts`: SQL 업데이트 실행
+- **`scripts/`**: 유틸리티 및 마이그레이션 스크립트 (14개 핵심 + 32개 아카이브)
+  - **배포**:
+    - `deploy-production.bat/sh`: 프로덕션 배포 스크립트
   - **테스트** (test-runner.ts를 통해 실행):
     - `test-runner.ts`: 통합 테스트 실행기
     - `test-sms.ts`: SMS 인증 테스트
@@ -175,8 +173,11 @@ export async function GET(
     - `emergency-restore-questions.ts`: 질문 데이터 긴급 복구
     - `restore-questions.ts`: 질문 데이터 복구
   - **유틸리티**:
+    - `run-sql-update.ts`: SQL 업데이트 실행
     - `clear-localstorage.js`: localStorage 초기화
-  - **아카이브** (`scripts/archive/`): 참고용 스크립트 7개 보관
+  - **아카이브** (`scripts/archive/`): 참고용 스크립트 32개 보관
+    - 마이그레이션 스크립트 (migrate-to-supabase.ts, migrate-questions-to-supabase.ts)
+    - 일회성 작업 스크립트 (add-*, check-*, fix-*, update-* 등)
 
 ## 중요 개발 참고사항
 
@@ -238,14 +239,17 @@ SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작�
 - 질문 변경 후 챗봇 페이지 새로고침 시 자동 반영
 
 **표준 대화 단계**:
-1. 환영 메시지 (서비스 선택)
-2. 예산 범위
-3. 프로젝트 일정
-4. 추가 상세사항
-5. 이름 수집
-6. 전화번호 입력
-7. 인증번호 확인 (phoneVerification - 자동 추가)
-8. 완료 메시지
+1. 환영 메시지 (예비창업자 여부)
+2. 정부지원사업 경험
+3. 사업 아이템
+4. 학력 및 전공
+5. 현재 직업 상태
+6. 지역
+7. 성별
+8. 나이
+9. 이름 수집
+10. 전화번호 입력 및 인증
+11. 완료 메시지
 
 ### 데이터 저장 전략
 - **기본**: Supabase PostgreSQL 데이터베이스 (영구 저장, 도메인 독립적)
@@ -379,6 +383,31 @@ lsof -ti:3000 | xargs kill -9
 - 해결: `rm nul` 명령으로 파일 삭제 후 재시도
 - 교훈: OS별 예약어 및 특수 파일명 주의
 
+### Vercel 도메인 배포 불일치 문제 (2025-10-04)
+**문제**: Production 도메인(`www.88-company.com`)에 최신 수정사항 미반영
+- 증상:
+  - Git master 브랜치 푸시 시 Preview 배포만 생성됨
+  - 배포별 URL에서는 최신 변경사항 확인 가능하나 도메인에서는 불가
+  - 도메인이 오래된 CDN 캐시 제공 (X-Vercel-Cache: HIT)
+- 원인:
+  - **근본 원인**: Vercel 프로젝트 설정에서 Production Branch가 `master`가 아닌 다른 브랜치로 설정됨
+  - CDN 캐시가 오래된 배포를 계속 제공
+- 해결:
+  - **즉시 조치**: `npx vercel promote <preview-url> --yes`로 Preview 배포를 Production으로 승격
+  - **근본 해결**: Vercel 대시보드 → Settings → Git → Production Branch를 `master`로 변경
+- 확인 방법:
+  ```bash
+  # 배포 상태 확인
+  npx vercel ls --prod
+
+  # 도메인 캐시 확인
+  curl -I https://www.88-company.com | grep -E "Age|X-Vercel-Cache"
+  ```
+- 교훈:
+  - Vercel Production Branch 설정 확인 필수
+  - Preview vs Production 배포 환경 구분 명확히
+  - CDN 캐시 Age 값으로 최신 배포 여부 확인 가능
+
 ### 모듈 구조 개선
 **개선사항**: 코드베이스 모듈화 및 타입 정의 통합
 - 변경 전: 플랫한 lib/ 구조, 중복 타입 정의
@@ -448,21 +477,43 @@ lsof -ti:3000 | xargs kill -9
 - **Node.js 버전**: 20 LTS
 
 
-### 프로젝트 클린업 (2025-10-03)
+### 프로젝트 클린업 (2025-10-03 ~ 2025-10-04)
 **변경사항**: 불필요한 스크립트 정리 및 아카이브 구조 개선
+
+**1차 클린업 (2025-10-03)**:
 - **제거 항목**:
-  - 실패한 마이그레이션 시도 스크립트 6개 (execute-migration-direct.ts, execute-migration-pg.ts, execute-via-management-api.ts, execute-via-rpc.ts, run-migration.ts, remove-is-active-workaround.ts)
-  - 중복/사용 안하는 테스트 파일 14개 (test-live-verification.ts, test-local-validation.ts, test-nhn-direct.ts 등)
-  - 기타 불필요 파일 3개 (update-chatbot-questions.sql, migrate-to-supabase.js, test-supabase-connection.ts)
-- **현재 구조**:
-  - 메인 스크립트 12개 (마이그레이션 3개, 테스트 6개, 긴급 복구 2개, 유틸리티 1개)
-  - 아카이브 스크립트 7개 (scripts/archive/ - 참고용)
-  - 코드베이스 72% 축소 (43개 → 12개 + 7개 아카이브)
-- **성과**:
-  - 프로젝트 구조 단순화 및 유지보수성 향상
-  - 명확한 스크립트 분류 및 문서화
-  - 향후 참고용 스크립트는 archive/에 보관
-- 교훈: 실험적 스크립트는 즉시 정리, 성공한 방법만 보관, 정기적인 클린업 필요
+  - 실패한 마이그레이션 시도 스크립트 6개
+  - 중복/사용 안하는 테스트 파일 14개
+  - 기타 불필요 파일 3개
+- **결과**: 43개 → 19개 (56% 감소)
+
+**2차 클린업 (2025-10-04)**:
+- **아카이브 이동 (23개)**:
+  - 일회성 작업 스크립트: add-*.ts (7개), check-*.ts (3개), update-*.ts (3개), fix-*.ts (3개), verify-*.ts (2개)
+  - 진단 및 실행 스크립트: diagnose-*.ts (2개), execute-*.ts (1개), quick-verify.ts (1개), cleanup-*.ts (1개)
+- **삭제 항목**:
+  - nul 파일 (Windows 예약어 충돌 파일)
+
+**최종 구조 (2025-10-04)**:
+- **메인 스크립트 14개** (60% 감소):
+  - 배포: 2개 (deploy-production.bat/sh)
+  - 테스트: 6개 (test-runner + 5개 테스트 모듈)
+  - 긴급 복구: 2개 (emergency-restore, restore)
+  - 유틸리티: 2개 (run-sql-update, clear-localstorage)
+- **아카이브 스크립트 32개**: scripts/archive/ (참고용)
+  - 마이그레이션 스크립트 (migrate-to-supabase, migrate-questions 등)
+  - 일회성 작업 스크립트 (컬럼 추가, 수정, 검증 등)
+
+**성과**:
+- 프로젝트 구조 대폭 단순화 (35개 → 14개 핵심 파일)
+- 명확한 스크립트 분류 및 용도 구분
+- 유지보수성 향상 및 코드베이스 가독성 개선
+- 향후 참고용 스크립트는 archive/에 체계적으로 보관
+
+**교훈**:
+- 실험적 스크립트는 즉시 정리
+- 성공한 방법만 메인에 보관
+- 정기적인 클린업으로 코드베이스 건강성 유지
 ## 향후 개선사항
 - ~~실제 SMS 프로바이더 통합~~ ✅ (멀티 프로바이더 지원 완료)
 - ~~동적 질문 관리 시스템~~ ✅ (실시간 동기화 완료)
