@@ -1295,11 +1295,10 @@ npx shadcn-ui@latest add avatar
 - Excel 다운로드 기능
 - 실시간 데이터 새로고침
 - 리드 삭제 기능
-- **[NEW] 동적 질문 관리 페이지**
-  - 질문 생성/수정/삭제 UI
-  - 드래그 앤 드롭 순서 조정
-  - 실시간 미리보기
-  - 질문 타입별 아이콘 표시
+- **[UPDATED] 질문 관리 페이지** (간소화됨)
+  - Supabase 직접 관리 안내 페이지
+  - 마이그레이션 스크립트 실행 가이드
+  - 데이터베이스 백업 가이드
 
 ### 적용된 디자인 시스템
 ✅ **Soomgo 스타일 UI/UX**
@@ -1345,23 +1344,45 @@ npx shadcn-ui@latest add avatar
 ⏳ 대화 내역 저장/불러오기
 ⏳ 다국어 지원
 
-### 아키텍처 최적화 (2025-01-21)
+### 아키텍처 클린업 (2025-10-01)
 
-#### 제거된 레거시 컴포넌트
-❌ **SimpleChatInterface** - 미사용 초기 버전
-❌ **DynamicChatInterface** - 중복 구현체
-❌ **real-time-question-service** - enhanced-realtime-service로 통합
-❌ **dynamic-flow.ts** - 미사용 플로우 파일
-❌ **flow.ts** - 미사용 플로우 파일
-❌ **page.backup.tsx** - 백업 파일
-❌ **enhanced-page.tsx** - 실험적 버전
+#### 제거된 컴포넌트 및 서비스 (총 27개 파일)
+**컴포넌트 (5개)**:
+- ❌ RealTimeChatInterface
+- ❌ QuestionCard
+- ❌ QuestionEditModal
+- ❌ ChatPreview
+- ❌ DatabaseStatusIndicator
 
-#### 서비스 통합
-✅ **enhanced-realtime-service로 일원화**
-- real-time-question-service 기능 통합
-- 초기화 상태 추적 개선 (isReady 플래그)
-- 싱글톤 패턴 유지
-- 2,509줄의 중복 코드 제거
+**서비스 (3개)**:
+- ❌ enhanced-realtime-service
+- ❌ dynamic-question-service
+- ❌ question-manager
+
+**API 라우트 (4개)**:
+- ❌ /api/admin/questions (CRUD)
+
+**페이지 (3개)**:
+- ❌ /test, /recover, /test-verify
+
+**테스트 스크립트 (9개)**:
+- ❌ 실시간 동기화 관련 테스트 전체
+
+**문서 (3개)**:
+- ❌ 오래된 리포트 파일들
+
+#### 현재 아키텍처
+✅ **StaticQuestionService (Singleton)**
+- Supabase에서 질문 로드
+- 캐싱 지원
+- 간단하고 안정적인 구조
+- 총 196줄의 간결한 코드
+
+**코드 정리 결과**:
+- 삭제: 5,671 lines
+- 추가: 201 lines
+- 순 감소: 96.5% (5,470 lines)
+- 아키텍처 간소화: 84.3%
 
 ## 🔄 디자인 시스템 버전 관리
 
@@ -1381,149 +1402,40 @@ npx shadcn-ui@latest add avatar
 | v4.3.0 | 2025-01-21 | 아키텍처 클린업, 서비스 통합, 코드베이스 최적화 |
 | v4.3.1 | 2025-01-22 | 백엔드 안정화 - NHN Cloud SMS 프로덕션 설정 완료, 코드 클린업 |
 | v4.3.2 | 2025-01-24 | 보안 강화 - Supabase RLS 정책 적용, Admin Client 패턴 구현 |
+| v4.4.0 | 2025-01-22 | 데이터 보호 시스템 - 데이터 손실 방지, 백업 시스템, 페이지 이탈 경고 |
+| v5.0.0 | 2025-10-01 | **아키텍처 간소화 - 동적 질문 편집 시스템 제거, 정적 로딩 방식으로 전환** |
 
-## 🎨 신규 관리자 컴포넌트 (v4.2.0)
+## 🎨 컴포넌트 현황 (v5.0.0)
 
-### 새로 추가된 컴포넌트
+### 아키텍처 간소화 (2025-10-01)
 
-#### QuestionCard 컴포넌트
-```tsx
-// components/admin/QuestionCard.tsx
-```
-**기능**:
-- 드래그 앤 드롭 지원하는 질문 카드
-- 질문 타입별 컬러 코딩 (text: 파랑, select: 초록, verification: 빨강)
-- 활성/비활성 토글 스위치
-- 편집/삭제 액션 버튼
-- 드래그 핸들 UI
+**주요 변경사항**:
+- 동적 질문 편집 시스템 완전 제거
+- 정적 질문 로딩 방식으로 전환 (StaticQuestionService)
+- 질문은 Supabase 데이터베이스에서 직접 관리
+- 챗봇 페이지 로드 시 한 번만 질문 불러오기
+- 관리자 페이지는 간단한 안내 페이지로 변경
 
-**디자인 특징**:
-- 카드 기반 레이아웃 (w-full, border, rounded-lg)
-- 호버 효과 (hover:shadow-md)
-- 타입별 색상 구분 (bg-blue-500/10, bg-green-500/10, bg-red-500/10)
-- 드래그 상태 피드백 (opacity-50)
+**제거된 컴포넌트** (27개 파일, ~5,671 라인):
+- ❌ QuestionCard - 드래그앤드롭 질문 카드
+- ❌ QuestionEditModal - 질문 편집 모달
+- ❌ ChatPreview - 실시간 미리보기
+- ❌ DatabaseStatusIndicator - DB 상태 표시
+- ❌ RealTimeChatInterface - 실시간 동기화 챗봇
+- ❌ EnhancedRealtimeService - 실시간 동기화 서비스
+- ❌ DynamicQuestionService - 동적 질문 관리
 
-#### QuestionEditModal 컴포넌트
-```tsx
-// components/admin/QuestionEditModal.tsx
-```
-**기능**:
-- 질문 생성/편집을 위한 모달 다이얼로그
-- 질문 타입 선택 (text, textarea, select, quick-reply, verification)
-- 선택지 동적 추가/제거
-- 유효성 검증 및 에러 표시
-- 저장/취소 액션
+**현재 아키텍처**:
+- `StaticQuestionService`: Singleton 패턴으로 질문 로드
+- `ChatInterface`: 단순화된 챗봇 인터페이스
+- `ProgressBar`: 정적 단계 수 기반 진행률
+- `BackupService`: 자동 백업 시스템 (유지)
 
-**디자인 특징**:
-- shadcn/ui Dialog 컴포넌트 활용
-- 반응형 폼 레이아웃 (max-w-2xl)
-- 동적 섹션 표시/숨김
-- 일관된 버튼 스타일링
-
-#### ChatPreview 컴포넌트
-```tsx
-// components/admin/ChatPreview.tsx
-```
-**기능**:
-- 실시간 대화 플로우 미리보기
-- 모바일/데스크톱 뷰 전환
-- 질문 순서대로 플로우 시뮬레이션
-- 진행률 표시
-- 타이핑 애니메이션 효과
-
-**디자인 특징**:
-- 미니 챗봇 인터페이스 재현
-- 부드러운 전환 효과 (transition-all duration-300)
-- 스크롤 자동 관리
-- 로딩 상태 애니메이션
-
-#### DatabaseStatusIndicator 컴포넌트
-```tsx
-// components/admin/DatabaseStatusIndicator.tsx
-```
-**기능**:
-- 현재 데이터베이스 연결 상태 표시
-- Supabase/localStorage 저장소 구분
-- 도메인 변경 위험 경고
-- 실시간 상태 모니터링 (30초 간격)
-
-**디자인 특징**:
-- 상태별 색상 인디케이터 (초록: Supabase, 노랑: localStorage)
-- 경고 메시지 스타일링 (bg-yellow-500/10)
-- 아이콘과 텍스트 조합
-- 자동 새로고침 표시
-
-### 향상된 관리자 페이지 UI
-
-#### 새로운 기능들
-✅ **드래그 앤 드롭 순서 변경**
-- @dnd-kit/core, @dnd-kit/sortable 라이브러리 활용
-- 터치 및 키보드 지원
-- 시각적 피드백 (드래그 중 불투명도 변경)
-- 실시간 순서 저장
-
-✅ **검색 및 필터링**
-- 실시간 질문 검색
-- 타입별 필터링 (all, text, select, verification)
-- 활성/비활성 상태 필터
-- 검색결과 하이라이팅
-
-✅ **실시간 미리보기**
-- 질문 변경사항 즉시 반영
-- 챗봇 플로우 시뮬레이션
-- 모바일/데스크톱 뷰 전환
-- 진행률 실시간 계산
-
-✅ **데이터베이스 상태 모니터링**
-- Supabase 연결 상태 실시간 확인
-- localStorage 사용 시 경고 표시
-- 자동 폴백 메커니즘
-- 연결 품질 지표
-
-#### 애니메이션 및 인터랙션
-- **framer-motion** 라이브러리 활용
-- 페이드 인/아웃 효과 (AnimatePresence)
-- 리스트 아이템 애니메이션 (layout)
-- 모달 등장/사라짐 효과
-- 부드러운 상태 전환
-
-#### 반응형 디자인 개선
-- 모바일 우선 설계 (Mobile First)
-- 그리드 레이아웃 자동 조정 (grid-cols-1 md:grid-cols-2 lg:grid-cols-3)
-- 터치 친화적 버튼 크기 (최소 44px)
-- 가로/세로 모드 대응
-
-### 신규 라이브러리 및 의존성
-
-#### 애니메이션 & 드래그앤드롭
-```json
-{
-  "framer-motion": "^11.0.0",
-  "@dnd-kit/core": "^6.1.0",
-  "@dnd-kit/sortable": "^8.0.0",
-  "@dnd-kit/utilities": "^3.2.2"
-}
-```
-
-#### 타입 정의 개선
-- Supabase 타입 안전성 강화
-- 컴포넌트 Props 인터페이스 정의
-- 이벤트 핸들러 타입 명시
-- 제네릭 타입 활용
-
-### 성능 최적화
-
-#### 렌더링 최적화
-- React.memo 활용한 불필요한 리렌더링 방지
-- useMemo, useCallback 훅 적절한 사용
-- 이벤트 리스너 정리 (cleanup)
-- 디바운싱 적용 (검색 입력)
-
-#### 데이터 동기화
-- 실시간 이벤트 리스너 관리
-- 낙관적 업데이트 패턴
-- 에러 복구 메커니즘
-- 캐싱 전략
+**장점**:
+- 코드베이스 96.5% 축소 (5,671 lines → 201 lines)
+- 복잡도 대폭 감소
+- 유지보수성 향상
+- 성능 개선 (불필요한 실시간 동기화 제거)
 
 ### 디자인 토큰 관리
 ```javascript

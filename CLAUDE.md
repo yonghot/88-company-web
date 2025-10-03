@@ -2,25 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🚀 Quick Start
-
-```bash
-# 프로젝트 디렉토리로 이동
-cd 88-company-web
-
-# 의존성 설치
-npm install
-
-# 개발 서버 실행 (http://localhost:3000)
-npm run dev
-
-# 타입 체크
-npx tsc --noEmit
-
-# 프로덕션 빌드
-npm run build
-```
-
 ## 🚨 필수 원칙
 
 ### 언어 설정
@@ -34,6 +15,8 @@ npm run build
 - **컴포넌트 구조**: React 컴포넌트는 함수형 컴포넌트와 hooks 사용
 - **비동기 처리**: Next.js 15.5.3의 async params 패턴 준수
 - **에러 처리**: try-catch 블록과 적절한 에러 메시지 제공
+- **최소 변경 원칙**: 요청받은 기능만 구현하고 임의로 관련 기능을 추가하지 않음
+- **근본 원인 해결**: 임시 방편이 아닌 근본적인 문제 해결로 재발 방지
 
 ## 프로젝트 개요
 
@@ -48,7 +31,7 @@ npm run build
 - **UI 라이브러리**: Framer Motion, @dnd-kit (드래그 앤 드롭)
 - **데이터 처리**: xlsx (Excel 내보내기), uuid (고유 ID 생성)
 
-## 주요 개발 명령어
+## 🚀 Quick Start & 주요 개발 명령어
 
 ```bash
 # 프로젝트 디렉토리로 이동
@@ -78,7 +61,6 @@ npm run test:verification     # 인증 플로우 테스트
 npm run test:chat             # 챗봇 플로우 테스트
 npm run test:database         # 데이터베이스 테스트
 npm run test:admin            # 관리자 기능 테스트
-npm run test:realtime         # 실시간 동기화 테스트
 npm run test:list             # 사용 가능한 테스트 목록 확인
 
 # 데이터베이스
@@ -135,12 +117,9 @@ npx tsx scripts/[script].ts   # TypeScript 스크립트 직접 실행
    - 비밀번호 보호 (ADMIN_PASSWORD 환경 변수)
    - 실시간 데이터 조회 및 관리
 
-6. **동적 질문 관리**: `/admin/questions`에서 챗봇 질문을 실시간으로 편집하고 순서 변경 가능
-   - 드래그 앤 드롭으로 순서 조정
-   - 재배포 없이 즉시 반영
-
-7. **실시간 동기화**: localStorage와 커스텀 이벤트를 통한 브라우저 탭 간 실시간 동기화
-   - 관리자 페이지 변경사항이 챗봇에 즉시 반영
+6. **질문 관리**: Supabase 데이터베이스에서 직접 챗봇 질문 관리
+   - `/admin/questions`에서 Supabase 대시보드 접근 안내
+   - 질문 변경 시 챗봇 페이지 새로고침으로 반영
 
 ## 핵심 컴포넌트와 API 패턴
 
@@ -163,10 +142,8 @@ export async function GET(
 - **`/api/admin/questions`**: 동적 질문 관리 (관리자 인증 필요: ADMIN_PASSWORD 환경 변수)
 
 ### 핵심 모듈 구조
-- **`lib/chat/`**: 챗봇 로직 (정적/동적 플로우 지원)
-  - `ChatFlowService`: 대화 플로우 관리
-  - `DynamicQuestionService`: 동적 질문 로드/저장 (Supabase 통합)
-  - `RealTimeQuestionService`: 실시간 질문 동기화 서비스
+- **`lib/chat/`**: 챗봇 로직
+  - `StaticQuestionService`: 정적 질문 로딩 서비스 (페이지 로드 시 한 번만)
   - `questions.ts`: 정적 질문 정의 (폴백용)
 - **`lib/sms/`**: SMS 인증 (멀티 프로바이더 전략 패턴)
   - Strategy Pattern 구현으로 프로바이더 간 전환 용이
@@ -177,15 +154,29 @@ export async function GET(
 - **`lib/supabase-admin.ts`**: RLS 우회를 위한 관리자 클라이언트
   - Service Role Key 사용하여 RLS 정책 우회
   - 서버 사이드 작업에서만 사용 (보안 중요)
-- **`components/admin/`**: 관리자 페이지 전용 컴포넌트
-  - `QuestionCard.tsx`: 드래그 가능한 질문 카드 컴포넌트
-  - `QuestionEditModal.tsx`: 종합 질문 편집 모달
-  - `ChatPreview.tsx`: 실시간 대화 플로우 미리보기
-  - `DatabaseStatusIndicator.tsx`: DB 연결 상태 실시간 모니터링
-- **`scripts/`**: 유틸리티 및 마이그레이션 스크립트
-  - `migrate-to-supabase.ts`: 전체 데이터 마이그레이션
-  - `migrate-questions-to-supabase.ts`: 질문 데이터 전용 마이그레이션
-  - `test-ui-components.ts`: UI 컴포넌트 테스트 스위트
+- **`components/chatbot/`**: 챗봇 인터페이스 컴포넌트
+  - `ChatInterface.tsx`: 메인 챗봇 컴포넌트
+  - `ChatMessage.tsx`: 메시지 표시 컴포넌트
+  - `ChatInput.tsx`: 사용자 입력 컴포넌트
+  - `VerificationInput.tsx`: 전화번호 인증 컴포넌트
+- **`scripts/`**: 유틸리티 및 마이그레이션 스크립트 (12개로 정리됨, 43개에서 72% 감소)
+  - **마이그레이션**:
+    - `migrate-to-supabase.ts`: 전체 데이터 마이그레이션
+    - `migrate-questions-to-supabase.ts`: 질문 데이터 전용 마이그레이션
+    - `run-sql-update.ts`: SQL 업데이트 실행
+  - **테스트** (test-runner.ts를 통해 실행):
+    - `test-runner.ts`: 통합 테스트 실행기
+    - `test-sms.ts`: SMS 인증 테스트
+    - `test-chat-flow.ts`: 챗봇 플로우 테스트
+    - `test-database.ts`: 데이터베이스 테스트
+    - `test-verification.ts`: 인증 플로우 테스트
+    - `test-admin-auth.ts`: 관리자 인증 테스트
+  - **긴급 복구**:
+    - `emergency-restore-questions.ts`: 질문 데이터 긴급 복구
+    - `restore-questions.ts`: 질문 데이터 복구
+  - **유틸리티**:
+    - `clear-localstorage.js`: localStorage 초기화
+  - **아카이브** (`scripts/archive/`): 참고용 스크립트 7개 보관
 
 ## 중요 개발 참고사항
 
@@ -221,8 +212,6 @@ ADMIN_PASSWORD=your_admin_password  # 관리자 페이지 접근 비밀번호 (�
 # 개발 설정
 SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작동)
 
-# Supabase Service Role Key (RLS 우회용 - 선택사항)
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # RLS 정책 우회를 위한 관리자 키
 ```
 
 ### 디자인 시스템
@@ -233,22 +222,23 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # RLS 정책 우회를 위한 �
 - **모바일 우선**: 완전 반응형 디자인
 
 ### 대화 플로우 관리
-챗봇은 **실시간 동기화가 적용된 동적 플로우**를 사용합니다:
+챗봇은 **Supabase 데이터베이스 기반 정적 플로우**를 사용합니다:
 
-**실시간 동적 플로우** (EnhancedRealTimeService):
-- `/admin/questions` 페이지에서 실시간 편집 가능
-- **실시간 자동 동기화**: 질문 수정 시 챗봇에 즉시 반영 (새로고침 불필요)
+**StaticQuestionService (Singleton 패턴)**:
+- Supabase `chat_questions` 테이블에서 질문 로드
+- **페이지 로드 시 한 번만 질문 불러오기** - 간단하고 안정적인 구조
 - **동적 단계 계산**: 활성 질문 수에 따라 자동으로 진행 단계 수 조정
-- **드래그 앤 드롭**: @dnd-kit 라이브러리로 순서 변경
-- 질문 추가/삭제/수정 즉시 반영
-- **order_index 기반 동적 네비게이션**: 질문 순서에 따라 자동으로 다음 질문으로 이동
+- **order_index 기반 네비게이션**: 질문 순서에 따라 자동으로 다음 질문으로 이동
 - **비활성 질문 건너뛰기**: is_active가 false인 질문은 플로우에서 제외
-- **Supabase 기반 동기화**: 실시간 데이터베이스 업데이트
+- **캐싱 지원**: 불필요한 데이터베이스 호출 최소화
 
-**중요**: `enhanced-realtime-service.ts`가 메인 서비스입니다 (싱글톤 패턴)
+**질문 관리 방법**:
+- Supabase 대시보드 → Table Editor → `chat_questions` 테이블에서 직접 편집
+- `/admin/questions` 페이지에서 Supabase 대시보드 링크 및 안내 제공
+- 질문 변경 후 챗봇 페이지 새로고침 시 자동 반영
 
-표준 대화 단계 (동적으로 변경 가능):
-1. 환영 메시지 (서비스 선택) - 모든 선택지가 동일한 플로우 진행
+**표준 대화 단계**:
+1. 환영 메시지 (서비스 선택)
 2. 예산 범위
 3. 프로젝트 일정
 4. 추가 상세사항
@@ -256,12 +246,6 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # RLS 정책 우회를 위한 �
 6. 전화번호 입력
 7. 인증번호 확인 (phoneVerification - 자동 추가)
 8. 완료 메시지
-
-**실시간 동기화 아키텍처**:
-- `RealTimeQuestionService`: 중앙 질문 관리 서비스 (싱글톤 패턴)
-- `RealTimeChatInterface`: 실시간 업데이트를 받는 챗봇 컴포넌트
-- **구독 패턴**: 리스너를 통한 변경사항 자동 감지
-- **자동 리셋**: 질문 변경 시 챗봇 대화 자동 초기화
 
 ### 데이터 저장 전략
 - **기본**: Supabase PostgreSQL 데이터베이스 (영구 저장, 도메인 독립적)
@@ -280,16 +264,15 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # RLS 정책 우회를 위한 �
 
 ### 테스트 접근법
 - **테스트 실행**: `scripts/test-runner.ts`를 통한 통합 테스트 실행
-- **테스트 카테고리**: sms, environment, chat, database, verification, admin, realtime
+- **테스트 카테고리**: sms, environment, chat, database, verification, admin
 - **성능/보안 테스트**: `test-performance-security.ts`
 - **전화번호 유효성**: `test-phone-validation.ts`
-- **실시간 동기화**: `test-realtime-sync.ts`
 - **수동 테스트 필요 항목**:
   - 챗봇 대화 플로우 E2E
   - 전화번호 인증 전체 프로세스
   - 관리자 대시보드 기능
   - Excel 내보내기 기능
-  - 질문 드래그 앤 드롭
+  - Supabase 질문 수정 후 챗봇 반영 확인
 
 ## 특별 고려사항
 
@@ -432,6 +415,30 @@ lsof -ti:3000 | xargs kill -9
   - `RLS_적용_가이드.md`: 단계별 적용 가이드
 - 교훈: RLS 정책 설정 시 서비스 요구사항 충분히 고려
 
+### 아키텍처 간소화 (2025-10-01)
+**v5.0.0 주요 변경사항**: 동적 질문 편집 시스템 제거 및 정적 로딩으로 전환
+
+**제거된 컴포넌트 (27개 파일, ~5,671 라인)**:
+- ❌ 실시간 동기화 시스템 (enhanced-realtime-service.ts)
+- ❌ 동적 질문 편집 UI (QuestionCard, QuestionEditModal, ChatPreview)
+- ❌ 관련 API 라우트 4개 및 테스트 페이지 3개
+- ❌ 실시간 동기화 관련 테스트 스크립트 9개
+
+**현재 간소화된 아키텍처**:
+- ✅ StaticQuestionService (Singleton 패턴, 196 라인)
+- ✅ Supabase 데이터베이스에서 질문 직접 관리
+- ✅ 페이지 로드 시 한 번만 질문 로드 (캐싱 지원)
+- ✅ 코드베이스 96.5% 축소로 유지보수성 대폭 향상
+
+**핵심 교훈**: 과도한 동적 기능보다 단순하고 안정적인 구조가 더 효과적
+
+### 주요 학습 사항
+1. **아키텍처 단순성**: 복잡한 실시간 동기화보다 정적 로딩이 더 안정적
+2. **데이터 일관성**: 단일 데이터 소스 원칙 준수 (Supabase 전용)
+3. **사용자 경험**: 대화 중 리셋 방지를 위한 실시간 동기화 제거
+4. **프레임워크 이해**: Next.js 15의 async params 패턴 필수
+5. **환경 분리**: 개발/프로덕션 환경 변수 관리 중요성
+
 ### 배포 참고사항
 - **플랫폼**: Vercel
 - **빌드 명령어**: `next build`
@@ -440,6 +447,22 @@ lsof -ti:3000 | xargs kill -9
 - **GitHub 저장소**: yonghot/88-company-web
 - **Node.js 버전**: 20 LTS
 
+
+### 프로젝트 클린업 (2025-10-03)
+**변경사항**: 불필요한 스크립트 정리 및 아카이브 구조 개선
+- **제거 항목**:
+  - 실패한 마이그레이션 시도 스크립트 6개 (execute-migration-direct.ts, execute-migration-pg.ts, execute-via-management-api.ts, execute-via-rpc.ts, run-migration.ts, remove-is-active-workaround.ts)
+  - 중복/사용 안하는 테스트 파일 14개 (test-live-verification.ts, test-local-validation.ts, test-nhn-direct.ts 등)
+  - 기타 불필요 파일 3개 (update-chatbot-questions.sql, migrate-to-supabase.js, test-supabase-connection.ts)
+- **현재 구조**:
+  - 메인 스크립트 12개 (마이그레이션 3개, 테스트 6개, 긴급 복구 2개, 유틸리티 1개)
+  - 아카이브 스크립트 7개 (scripts/archive/ - 참고용)
+  - 코드베이스 72% 축소 (43개 → 12개 + 7개 아카이브)
+- **성과**:
+  - 프로젝트 구조 단순화 및 유지보수성 향상
+  - 명확한 스크립트 분류 및 문서화
+  - 향후 참고용 스크립트는 archive/에 보관
+- 교훈: 실험적 스크립트는 즉시 정리, 성공한 방법만 보관, 정기적인 클린업 필요
 ## 향후 개선사항
 - ~~실제 SMS 프로바이더 통합~~ ✅ (멀티 프로바이더 지원 완료)
 - ~~동적 질문 관리 시스템~~ ✅ (실시간 동기화 완료)
