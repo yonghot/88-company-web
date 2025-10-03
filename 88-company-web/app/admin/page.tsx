@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { LeadData } from '@/lib/types';
-import * as XLSX from 'xlsx';
-import { Download, RefreshCw, Search, Filter, Eye } from 'lucide-react';
+import { RefreshCw, Search, Filter, Eye, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 
 export default function AdminPage() {
@@ -53,44 +52,6 @@ export default function AdminPage() {
 
     setFilteredLeads(filtered);
   }, [searchTerm, filterWelcome, leads]);
-
-  const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredLeads.map(lead => ({
-      '이름': lead.name || '',
-      '전화번호': lead.phone || '',
-      '인증상태': lead.verified ? '인증완료' : '미인증',
-      '예비창업자여부': lead.welcome || '',
-      '정부지원사업경험': lead.experience || '',
-      '사업아이템': lead.business_idea || '',
-      '지역': lead.region || '',
-      '성별': lead.gender || '',
-      '나이': lead.age || '',
-      '학력및전공': lead.education || '',
-      '직업상태': lead.occupation || '',
-      '등록일시': lead.createdAt ? new Date(lead.createdAt).toLocaleString('ko-KR') : ''
-    })));
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, '리드목록');
-
-    const wscols = [
-      { wch: 10 },  // 이름
-      { wch: 15 },  // 전화번호
-      { wch: 10 },  // 인증상태
-      { wch: 20 },  // 예비창업자여부
-      { wch: 20 },  // 정부지원사업경험
-      { wch: 30 },  // 사업아이템
-      { wch: 15 },  // 지역
-      { wch: 10 },  // 성별
-      { wch: 10 },  // 나이
-      { wch: 30 },  // 학력및전공
-      { wch: 20 },  // 직업상태
-      { wch: 20 }   // 등록일시
-    ];
-    worksheet['!cols'] = wscols;
-
-    XLSX.writeFile(workbook, `88_리드목록_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
 
 
   const welcomeOptions = ['all', ...Array.from(new Set(leads.map(lead => lead.welcome).filter(Boolean)))];
@@ -184,7 +145,7 @@ export default function AdminPage() {
                 </p>
               </div>
               <div className="p-3 bg-purple-500/10 rounded-lg">
-                <Download className="w-6 h-6 text-purple-500" />
+                <TrendingUp className="w-6 h-6 text-purple-500" />
               </div>
             </div>
           </div>
@@ -220,21 +181,13 @@ export default function AdminPage() {
               ))}
             </select>
 
-            {/* 액션 버튼들 */}
+            {/* 액션 버튼 */}
             <button
               onClick={fetchLeads}
               className="px-4 py-2 bg-[#252B3B] text-gray-300 rounded-lg hover:bg-[#00E5DB]/10 hover:text-[#00E5DB] border border-[#2E3544] hover:border-[#00E5DB]/30 transition-all flex items-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
               새로고침
-            </button>
-
-            <button
-              onClick={downloadExcel}
-              className="px-4 py-2 bg-gradient-to-r from-[#00E5DB] to-[#00C7BE] text-gray-900 rounded-lg hover:shadow-[0_0_20px_rgba(0,229,219,0.3)] transition-all flex items-center gap-2 font-semibold"
-            >
-              <Download className="w-4 h-4" />
-              엑셀 다운로드
             </button>
           </div>
         </div>
@@ -247,10 +200,14 @@ export default function AdminPage() {
                 <tr>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">이름</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">전화번호</th>
-                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">상태</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">예비창업자</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">지원사업경험</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">사업아이템</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">학력/전공</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">직업</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">지역</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">성별</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">나이</th>
                   <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">등록일시</th>
                   <th className="px-4 py-4 text-center text-sm font-semibold text-gray-300">보기</th>
                 </tr>
@@ -258,13 +215,13 @@ export default function AdminPage() {
               <tbody className="divide-y divide-[#2E3544]">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={12} className="px-6 py-12 text-center text-gray-400">
                       데이터를 불러오는 중...
                     </td>
                   </tr>
                 ) : filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={12} className="px-6 py-12 text-center text-gray-400">
                       리드가 없습니다.
                     </td>
                   </tr>
@@ -285,6 +242,12 @@ export default function AdminPage() {
                           {lead.welcome || '-'}
                         </span>
                       </td>
+                      <td className="px-4 py-4 text-sm text-gray-200">
+                        {lead.experience || '-'}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-200 max-w-[200px] truncate">
+                        {lead.business_idea || '-'}
+                      </td>
                       <td className="px-4 py-4 text-sm text-gray-200 max-w-[200px] truncate">
                         {lead.education || '-'}
                       </td>
@@ -293,6 +256,12 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-200">
                         {lead.region || '-'}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-200">
+                        {lead.gender || '-'}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-200">
+                        {lead.age || '-'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         {lead.createdAt && new Date(lead.createdAt).toLocaleString('ko-KR')}

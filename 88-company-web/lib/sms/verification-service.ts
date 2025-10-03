@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase-admin';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { SMSService } from './sms-service';
 import { rateLimiter } from './rate-limiter';
 import { VerificationCode } from './types';

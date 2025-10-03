@@ -13,7 +13,7 @@ async function ensureDataDirectory() {
   const dataDir = path.join(process.cwd(), 'data');
   try {
     await mkdir(dataDir, { recursive: true });
-  } catch (error) {
+  } catch {
     // Directory might already exist
   }
 }
@@ -22,7 +22,7 @@ async function getLeadsFromFile() {
   try {
     const data = await readFile(LEADS_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     return [];
   }
 }

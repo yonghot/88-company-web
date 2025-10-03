@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { VerificationService } from '@/lib/sms/verification-service';
-import { SMSService } from '@/lib/sms/sms-service';
 import { headers } from 'next/headers';
 import { VerificationResult } from '@/lib/chat/flow-types';
 

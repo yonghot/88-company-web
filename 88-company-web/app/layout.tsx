@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   description: "창업 컨설팅, 경영 전략, 마케팅, 투자 유치까지. 88 Company와 함께 비즈니스를 성장시키세요.",
   keywords: "창업 컨설팅, 경영 컨설팅, 마케팅 전략, 투자 유치, 비즈니스 전략",
   authors: [{ name: "88 Company" }],
+  icons: {
+    icon: "/88-logo.png",
+    apple: "/88-logo.png",
+  },
   openGraph: {
     title: "에이티에잇 컴퍼니",
     description: "예비창업자를 위한 최저가 토털 솔루션",

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured } from '@/lib/supabase';
 
 export async function GET() {
   try {
@@ -60,7 +59,7 @@ export async function GET() {
         configured: true
       });
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       status: 'error',
       storageType: 'localStorage',

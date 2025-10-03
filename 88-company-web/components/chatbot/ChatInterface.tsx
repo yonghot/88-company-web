@@ -6,7 +6,7 @@ import { ChatInput } from './ChatInput';
 import { ProgressBar } from './ProgressBar';
 import { QuickReplyOptions } from './QuickReplyOptions';
 import { VerificationInput } from './VerificationInput';
-import { Message, ChatState, LeadData, ChatFlowMap, ChatFlowStep, ChatStep } from '@/lib/types';
+import { Message, ChatState, LeadData, ChatFlowMap, ChatStep } from '@/lib/types';
 import { staticQuestionService } from '@/lib/chat/static-question-service';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';

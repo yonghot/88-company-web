@@ -90,11 +90,13 @@ export class StaticQuestionService {
   }
 
   getActiveQuestions(): ChatQuestion[] {
-    return this.questionsCache.sort((a, b) => a.order_index - b.order_index);
+    return this.questionsCache
+      .filter(q => q.order_index !== 999)
+      .sort((a, b) => a.order_index - b.order_index);
   }
 
   getTotalSteps(): number {
-    return this.questionsCache.length;
+    return this.questionsCache.filter(q => q.order_index !== 999).length;
   }
 
   getChatFlow(): Record<string, ChatFlowStep> {
