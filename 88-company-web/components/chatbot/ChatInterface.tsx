@@ -37,22 +37,51 @@ export function ChatInterface() {
 
   const initializeChat = useCallback((flow: ChatFlowMap) => {
     const firstStep = Object.keys(flow)[0];
-    if (!firstStep) return;
+    if (!firstStep) {
+      console.error('[ChatInterface] No first step found in flow');
+      return;
+    }
 
-    const welcomeStep = flow[firstStep];
-    const welcomeMessage: Message = {
+    const messages: Message[] = [];
+
+    const welcomeQuestion = staticQuestionService.getWelcomeMessage();
+    if (welcomeQuestion) {
+      const welcomeMessage: Message = {
+        id: uuidv4(),
+        type: 'bot',
+        content: welcomeQuestion.question,
+        timestamp: new Date()
+      };
+      messages.push(welcomeMessage);
+      console.log('[ChatInterface] ✅ Welcome message added (order_index=0)');
+      console.log('[ChatInterface] Welcome content:', welcomeQuestion.question.substring(0, 50) + '...');
+    } else {
+      console.warn('[ChatInterface] ⚠️ No welcome message found (order_index=0)');
+      console.warn('[ChatInterface] Please run: npx tsx scripts/add-welcome-final.ts');
+    }
+
+    const firstQuestionStep = flow[firstStep];
+    const firstQuestionMessage: Message = {
       id: uuidv4(),
       type: 'bot',
-      content: welcomeStep.question,
+      content: firstQuestionStep.question,
       timestamp: new Date()
     };
+    messages.push(firstQuestionMessage);
+    console.log('[ChatInterface] ✅ First question added:', firstStep);
+    console.log('[ChatInterface] Total initial messages:', messages.length);
 
     setChatState({
       currentStep: firstStep,
-      messages: [welcomeMessage],
+      messages,
       leadData: {},
       isCompleted: false
     });
+
+    console.log('[ChatInterface] 🎯 Chat initialized');
+    console.log('[ChatInterface] - Current step:', firstStep);
+    console.log('[ChatInterface] - Messages displayed:', messages.length);
+    console.log('[ChatInterface] - User will answer:', firstQuestionStep.question.substring(0, 50) + '...');
   }, []);
 
   useEffect(() => {

@@ -122,14 +122,22 @@ export class StaticQuestionService {
     return this.questionsCache;
   }
 
+  getWelcomeMessage(): ChatQuestion | undefined {
+    return this.questionsCache.find(q => q.order_index === 0);
+  }
+
   getActiveQuestions(): ChatQuestion[] {
     return this.questionsCache
-      .filter(q => q.order_index !== 999)
+      .filter(q => q.order_index !== 999 && q.order_index !== 0)
       .sort((a, b) => a.order_index - b.order_index);
   }
 
   getTotalSteps(): number {
-    return this.questionsCache.filter(q => q.order_index !== 999).length;
+    return this.questionsCache.filter(q => q.order_index !== 999 && q.order_index !== 0).length;
+  }
+
+  getCompleteMessage(): ChatQuestion | undefined {
+    return this.questionsCache.find(q => q.order_index === 999);
   }
 
   getChatFlow(): Record<string, ChatFlowStep> {

@@ -491,6 +491,35 @@ og 이미지는 배포하면 언제 반영돼? 그리고 로컬에서 테스트 
 --persona-architect --ultrathink --seq --c7
 ```
 
+#### 진행도 표시 문제 트러블슈팅 요청
+```
+최종메시지를 제외한 질문은 10개인데, 챗봇에서 진행도는 총 11단계로 표현되고있어서, 여전히 최종메시지가 진행도에 반영되고 있는것 같아. 다시한번 잘 확인해줘
+```
+
+#### 순차 명령어 실행 요청
+```
+다음의 명령어들을 '실행 여부를 묻지말고' 순차적으로 이어서 모두 완료될 때까지 계속 자동 실행해줘.
+
+/sc:troubleshoot
+/sc:git "커밋하고 푸시해줘." --persona-devops --think --seq --c7
+/sc:document @CLAUDE.md @PRD.md @ALL_PROMPT.md @DESIGN.md "지금까지 작업한 내용을 반영이 '필요'한 모든 .md 파일들에 최신화시켜 줘" --persona-architect --ultrathink --seq --c7
+```
+
+#### OG 이미지 배포 시기 및 Favicon 설정 문의
+```
+/sc:implement "og 이미지는 배포하면 언제 반영돼? 그리고 로컬에서 테스트 하려면? 그리고 파비콘도 기존 로고 사용하게 변경해줘." --persona-architect --ultrathink --seq --c7
+```
+
+#### Vercel 프로덕션 도메인 배포 문제 트러블슈팅
+```
+/sc:troubleshoot "최근에 vercel 에 배포된 부분을 확인해보니, 도메인이 https://www.88-company.com/ 에 적용되는게 아니라 배포별 URL로 계속 배포되고 있었어. 그래서 내가 계속 프로덕션 환경이라고 생각하고 확인하던 기존 도메인에서는 수정사항이 확인되지 않고 있었어. 왜 갑자기 원래 도메인으로 연결이 안되고 새로운 도메인으로만 배포가 되는건지 확인하고, 원래 도메인으로 바로 배포되도록 해결해줘." --persona-analyzer --ultrathink --seq --c7
+```
+
+#### Favicon 및 OpenGraph 메타데이터 캐싱 문제 트러블슈팅
+```
+/sc:troubleshoot "https://www.88-company.com/ 링크 공유시 썸네일 이미지가 88 로고로 변경된건 확인했어. 근데 왜 파비콘은 88 로고로 변경이 안되지? 그리고 layout.tsx 에서 수정한 metadata의 openGraph 내용이 아직도 링크 공유시에 반영이 안되고 있어. 왜 그런건지 확인하고 반영되게 해줘" --persona-analyzer --ultrathink --seq --c7
+```
+
 ---
 
 <!-- 새로운 프롬프트는 아래에 추가됩니다 -->

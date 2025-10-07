@@ -8,9 +8,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "88 Company - 비즈니스 성장을 위한 전문 컨설팅",
-  description: "창업 컨설팅, 경영 전략, 마케팅, 투자 유치까지. 88 Company와 함께 비즈니스를 성장시키세요.",
-  keywords: "창업 컨설팅, 경영 컨설팅, 마케팅 전략, 투자 유치, 비즈니스 전략",
+  title: "88",
+  description: "예비창업자를 위한 최저가 토털 솔루션",
+  keywords: "예비창업자를 위한 최저가 토털 솔루션",
   authors: [{ name: "88 Company" }],
   icons: {
     icon: "/88-logo.png",

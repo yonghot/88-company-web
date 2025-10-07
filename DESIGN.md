@@ -1298,6 +1298,10 @@ npx shadcn-ui@latest add avatar
 - **[UPDATED] 읽기 전용 인터페이스** (2025-10-04)
   - 리드 삭제/수정 기능 제거 (데이터 보호)
   - 리드 조회 및 Excel 내보내기 전용
+- **[NEW] 캐시 관리 기능** (2025-10-04)
+  - 캐시 새로고침 버튼으로 즉시 질문 데이터 갱신
+  - 질문 수정 후 프로덕션 반영 즉시 가능
+  - API: `/api/admin/refresh-cache` (ADMIN_PASSWORD 인증)
 
 ### 적용된 디자인 시스템
 ✅ **Soomgo 스타일 UI/UX**
@@ -1404,6 +1408,117 @@ npx shadcn-ui@latest add avatar
 | v4.4.0 | 2025-01-22 | 데이터 보호 시스템 - 데이터 손실 방지, 백업 시스템, 페이지 이탈 경고 |
 | v5.0.0 | 2025-10-01 | **아키텍처 간소화 - 동적 질문 편집 시스템 제거, 정적 로딩 방식으로 전환** |
 | v5.0.1 | 2025-10-04 | **Admin 페이지 UI 개선 - 테이블 완성, Favicon 설정, 보안 강화** |
+| v5.0.2 | 2025-10-04 | **캐시 무효화 및 백업 시스템 - TTL 기반 자동 갱신, 수동 갱신 UI, 데이터베이스 백업** |
+| v5.0.3 | 2025-10-04 | **소셜 미디어 메타데이터 최적화 - Favicon/OG 캐싱 문제 해결, 최적화 가이드** |
+
+## 📱 소셜 미디어 최적화 (v5.0.3)
+
+### Favicon 최적화
+**현재 상태** (2025-10-04):
+- favicon.ico: PNG 파일 (850KB, 892x890)
+- 88-logo.png: PNG 파일 (850KB, 892x890)
+- 파일 형식: ICO가 아닌 PNG
+
+**권장 최적화**:
+```bash
+# 1. 다양한 크기의 favicon 생성 (권장)
+# 16x16, 32x32, 48x48 크기 포함
+# ICO 포맷으로 변환
+# 파일 크기: 850KB → ~10KB
+
+# 2. 브라우저별 favicon 지원
+apple-touch-icon.png: 180x180 (iOS)
+favicon-16x16.png: 16x16 (브라우저 탭)
+favicon-32x32.png: 32x32 (브라우저 탭)
+favicon.ico: 멀티 사이즈 ICO (호환성)
+```
+
+**layout.tsx 메타데이터 설정**:
+```typescript
+export const metadata: Metadata = {
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" }, // ICO 포맷
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  // ... other metadata
+};
+```
+
+### OpenGraph 이미지 최적화
+**현재 상태**:
+- og-image.png: 892x890 (850KB)
+- 크기: OpenGraph 권장 크기 아님 (1200x630)
+
+**권장 최적화**:
+```yaml
+크기: 1200 x 630 픽셀 (OpenGraph 표준)
+포맷: PNG 또는 JPG
+파일크기: < 300KB (로딩 속도 최적화)
+용량최적화: TinyPNG, ImageOptim 사용
+```
+
+**OpenGraph 메타데이터 베스트 프랙티스**:
+```typescript
+export const metadata: Metadata = {
+  openGraph: {
+    title: "에이티에잇 컴퍼니",
+    description: "예비창업자를 위한 최저가 토털 솔루션",
+    url: "https://www.88-company.com",
+    siteName: "88 Company",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "88 Company - 예비창업자를 위한 정부지원사업 컨설팅",
+      },
+    ],
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "에이티에잇 컴퍼니",
+    description: "예비창업자를 위한 최저가 토털 솔루션",
+    images: ["/og-image.png"],
+  },
+};
+```
+
+### 소셜 미디어 캐싱 처리
+**브라우저 캐시**:
+- 하드 리프레시: `Ctrl + Shift + R` (Windows/Linux), `Cmd + Shift + R` (macOS)
+- 개발자 도구: Application → Clear Storage → Clear site data
+- 시크릿/프라이빗 모드로 테스트
+
+**SNS 플랫폼 캐시 디버깅 도구**:
+```yaml
+카카오톡:
+  url: https://developers.kakao.com/tool/clear/og
+  설명: URL 입력 후 "초기화" 버튼으로 캐시 삭제
+
+페이스북:
+  url: https://developers.facebook.com/tools/debug/
+  설명: URL 입력 후 "디버그" → "다시 가져오기"
+
+트위터/X:
+  url: https://cards-dev.twitter.com/validator
+  설명: Card Validator로 메타데이터 확인
+
+LinkedIn:
+  url: https://www.linkedin.com/post-inspector/
+  설명: Post Inspector로 캐시 초기화
+```
+
+**캐싱 정책 이해**:
+- 브라우저 favicon: 수 일 ~ 수 주 캐싱
+- 카카오톡: 수 시간 ~ 수 일 캐싱
+- 페이스북: 수 일 ~ 수 주 캐싱 (강제 갱신 가능)
+- 트위터: 수 시간 캐싱
 
 ## 🎨 컴포넌트 현황 (v5.0.0)
 
