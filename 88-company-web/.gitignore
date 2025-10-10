@@ -43,3 +43,5 @@ next-env.d.ts
 leads.json
 .vercel
 *.backup
+
+.vercel
