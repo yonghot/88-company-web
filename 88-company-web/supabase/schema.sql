@@ -36,11 +36,13 @@ CREATE TABLE IF NOT EXISTS leads (
   welcome TEXT,                           -- Q1: 예비창업자 여부
   experience TEXT,                        -- Q2: 정부지원사업 경험
   business_idea TEXT,                     -- Q3: 사업 아이템
-  region TEXT,                            -- Q4: 지역
-  gender TEXT,                            -- Q5: 성별
-  age TEXT,                               -- Q6: 나이
-  name TEXT,                              -- Q7: 고객 이름
-  phone TEXT,                             -- Q8: 전화번호 (하이픈 포함 원본)
+  education TEXT,                         -- Q4: 최종 학력과 전공
+  occupation TEXT,                        -- Q5: 현재 직업 상태
+  region TEXT,                            -- Q6: 지역
+  gender TEXT,                            -- Q7: 성별
+  age TEXT,                               -- Q8: 나이
+  name TEXT,                              -- Q9: 고객 이름
+  phone TEXT,                             -- Q10: 전화번호 (하이픈 포함 원본)
   verified BOOLEAN DEFAULT FALSE,         -- 전화번호 인증 여부
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())

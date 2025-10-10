@@ -58,17 +58,19 @@ export async function POST(request: NextRequest) {
 
     if (isSupabaseConfigured() && supabase) {
       // Use Supabase
-      // Map step IDs to database columns
+      // Map step IDs to database columns (based on order_index in chat_questions table)
       const leadData = {
         id: phoneId,
-        welcome: body.step_1 || body.welcome || '',           // Q1: 예비창업자 여부
-        experience: body.step_2 || body.experience || '',     // Q2: 정부지원사업 경험
-        business_idea: body.step_3 || body.business_idea || '', // Q3: 사업 아이템
-        region: body.step_4 || body.region || '',             // Q4: 지역
-        gender: body.step_5 || body.gender || '',             // Q5: 성별
-        age: body.step_6 || body.age || '',                   // Q6: 나이
-        name: body.step_7 || body.name || '',                 // Q7: 이름
-        phone: body.phone,                                    // Q8: 전화번호
+        welcome: body.step_1 || body.welcome || '',           // Q1 (order_index 1): 예비창업자 여부
+        experience: body.step_2 || body.experience || '',     // Q2 (order_index 2): 정부지원사업 경험
+        business_idea: body.step_3 || body.business_idea || '', // Q3 (order_index 3): 사업 아이템
+        region: body.step_4 || body.region || '',             // Q4 (order_index 4): 지역
+        gender: body.step_5 || body.gender || '',             // Q5 (order_index 5): 성별
+        age: body.step_6 || body.age || '',                   // Q6 (order_index 6): 나이
+        education: body.step_7 || body.education || '',       // Q7 (order_index 7): 최종 학력과 전공
+        occupation: body.step_8 || body.occupation || '',     // Q8 (order_index 8): 현재 직업
+        name: body.step_9 || body.name || '',                 // Q9 (order_index 9): 성함
+        phone: body.phone,                                    // Q10 (order_index 10): 휴대폰 번호
         verified: body.verified || false,
       };
 
@@ -123,10 +125,12 @@ export async function POST(request: NextRequest) {
           welcome: body.step_1 || body.welcome || '',
           experience: body.step_2 || body.experience || '',
           business_idea: body.step_3 || body.business_idea || '',
-          region: body.step_4 || body.region || '',
-          gender: body.step_5 || body.gender || '',
-          age: body.step_6 || body.age || '',
-          name: body.step_7 || body.name || '',
+          education: body.step_4 || body.education || '',
+          occupation: body.step_5 || body.occupation || '',
+          region: body.step_6 || body.region || '',
+          gender: body.step_7 || body.gender || '',
+          age: body.step_8 || body.age || '',
+          name: body.step_9 || body.name || '',
           phone: body.phone,
           verified: body.verified || false,
           createdAt: new Date().toISOString(),
