@@ -421,12 +421,20 @@ main (production)
 - 조건부 렌더링 (픽셀 ID 없어도 앱 정상 작동)
 - 트리거 조건: 전화번호 인증 완료 + 데이터베이스 저장 성공 시점
 - Meta Events Manager를 통한 광고 성과 추적 가능
-- 디버깅 컴포넌트 (개발 모드 전용 상태 표시)
+- **[NEW] Client Component 마이그레이션으로 환경변수 번들링 해결 (2025-10-11)**
+  - Next.js 15 Server Component → Client Component (`components/MetaPixel.tsx`)
+  - `'use client'` 지시자와 `useEffect`를 통한 스크립트 주입
+  - 커밋: fde78a4, 46a00f4
+- **[NEW] Meta Events Manager 데이터 지연 이해 (2025-10-11)**
+  - Test Events: 1~2초 (최대 1분)
+  - Events Manager: 15분~1시간
+  - Ads Manager: 최대 24시간
+  - 사용자 통찰: "33분 전 8개 이벤트" 확인으로 정상 작동 검증
 - 구현 파일:
-  - `app/layout.tsx`: Meta Pixel 기본 스크립트 (PageView 이벤트)
+  - `components/MetaPixel.tsx`: Client Component로 픽셀 스크립트 로드
+  - `app/layout.tsx`: MetaPixel 컴포넌트 통합
   - `components/chatbot/ChatInterface.tsx`: Lead 이벤트 발송
   - `types/meta-pixel.d.ts`: TypeScript 타입 정의
-  - `components/MetaPixelDebug.tsx`: 디버깅 컴포넌트
   - `META_PIXEL_GUIDE.md`: 포괄적인 구현 가이드
 
 ✅ **코드 구조 최적화 (2025-09-14)**

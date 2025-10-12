@@ -575,6 +575,31 @@ API 매핑 로직이 저게 맞아? 현재 프로덕션 환경의 데이터베�
 /sc:troubleshoot "[Console error messages...]" --persona-analyzer --ultrathink --seq --c7
 ```
 
+#### 메타 픽셀 작동 상태 확인
+```
+지금 챗봇페이지에서 휴대폰 인증단계에 메타 픽셀이 작동하고 있는거 맞아?
+```
+
+#### Facebook Pixel Helper 문제 트러블슈팅
+```
+/sc:troubleshoot '챗봇 페이지에서 meta pixel helper 아이콘 클릭했는데 No pixel found on www.88-company.com. Make sure your pixel code is properly implemented and ad blockers are turned off. You can review Meta Pixel implementation with your developer.' --persona-analyzer --ultrathink --seq --c7
+```
+
+#### 메타 픽셀 설정 확인
+```
+One pixel found on www.88-company.com 라고 뜨는데 이제 그냥 작동하는건가? Set up events 같은거 설정해야되는건가?
+```
+
+#### Lead 이벤트 미발송 트러블슈팅
+```
+/sc:troubleshoot '콘솔에 metapixel 로그와 lead event sent 로그 다 보이고 있어. network 탭에서 관련 요청은 이런식으로 나와 [Network logs showing PageView and SubscribedButtonClick but no Lead events]' --persona-analyzer --ultrathink --seq --c7
+```
+
+#### 메타 이벤트 지연 통찰 (사용자가 정답 발견)
+```
+다시 테스트 한 뒤에 이벤트 관리자 페이지를 확인하니, 갑자기 33분전에 발생한 이벤트가 8개나 있다고 나오네. 이거 그냥 지금까지 계속 작동하고 있었는데 시간 지연때문에 실시간으로 확인이 안된거 아니야?
+```
+
 #### 문서 업데이트 요청
 ```
 /sc:document @CLAUDE.md @PRD.md @ALL_PROMPT.md @DESIGN.md "지금까지 작업한 내용을 반영이 '필요'한 모든 .md 파일들에 최신화시켜 줘" --persona-architect --ultrathink --seq --c7

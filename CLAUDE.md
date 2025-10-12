@@ -373,7 +373,8 @@ lsof -ti:3000 | xargs kill -9
 3. 데이터베이스에 리드 데이터 저장 성공
 
 ### 구현 위치
-- **PageView 이벤트**: `app/layout.tsx` (페이지 로드 시 자동)
+- **Meta Pixel 스크립트**: `components/MetaPixel.tsx` (Client Component)
+- **PageView 이벤트**: 자동 발송 (페이지 로드 시)
 - **Lead 이벤트**: `components/chatbot/ChatInterface.tsx` > `saveLeadData` 함수
 - **타입 정의**: `types/meta-pixel.d.ts`
 
@@ -388,6 +389,36 @@ lsof -ti:3000 | xargs kill -9
 2. Vercel 환경 변수 설정 (프로덕션)
 3. 개발 서버 재시작 후 테스트
 4. Facebook Pixel Helper로 이벤트 확인
+
+### 구현 세부사항 (2025-10-11)
+
+#### 문제: Next.js 15 Server Component 환경변수 번들링 실패
+**증상**: Production에서 "No pixel found" (Facebook Pixel Helper)
+**원인**: Next.js 15 Server Component는 `process.env.NEXT_PUBLIC_*` 변수를 빌드 타임에 제대로 번들링하지 못함
+**해결**: Client Component 마이그레이션
+- `components/MetaPixel.tsx` 생성 (`'use client'` 지시자)
+- `useEffect`를 통한 클라이언트 사이드 스크립트 주입
+- `app/layout.tsx`에서 `<MetaPixel />` 컴포넌트 사용
+- 커밋: fde78a4
+
+#### Meta Events Manager 데이터 지연
+**중요 교훈**: Lead 이벤트가 정상 작동해도 Meta Events Manager에 즉시 표시되지 않음
+- **Test Events**: 1~2초 (최대 1분)
+- **Events Manager**: 15분~1시간
+- **Ads Manager**: 최대 24시간
+- 사용자가 "33분 전에 8개 이벤트 발생" 보고로 정상 작동 확인
+- 불필요한 300ms await 지연 제거 (커밋: 46a00f4)
+
+#### 검증 방법
+```javascript
+// 브라우저 콘솔에서 확인
+console.log('[MetaPixel] 초기화:', typeof window.fbq);
+console.log('[ChatInterface] Lead event sent');
+
+// Network 탭에서 확인
+// tr?id=[픽셀ID]&ev=PageView
+// tr?id=[픽셀ID]&ev=Lead
+```
 
 ### 상세 가이드
 전체 설정, 테스트, 디버깅 방법은 [META_PIXEL_GUIDE.md](88-company-web/META_PIXEL_GUIDE.md) 참조
@@ -844,6 +875,36 @@ curl https://www.88-company.com | grep -E "og:|icon"
 - 일회성 작업 완료 후 즉시 아카이브 이동
 - ESLint 규칙 준수로 코드 품질 지속적 개선
 - 미사용 변수는 `_` 프리픽스로 의도 명시
+
+### 메타 픽셀 전환 추적 구현 (2025-10-11)
+**변경사항**: 리드 확보 시 Meta Pixel Lead 이벤트 자동 발송 시스템 구현
+
+**문제 및 해결**:
+1. **Server Component 환경변수 번들링 실패**
+   - 증상: Production에서 Facebook Pixel Helper가 "No pixel found" 표시
+   - 원인: Next.js 15 Server Component가 `process.env.NEXT_PUBLIC_META_PIXEL_ID`를 빌드 타임에 번들링하지 못함
+   - 해결: Client Component 마이그레이션 (`components/MetaPixel.tsx` 생성)
+   - 커밋: fde78a4
+
+2. **Meta Events Manager 데이터 지연 (False Alarm)**
+   - 증상: Test Events에서 이벤트 0개 표시, Lead 이벤트 Network 요청 미발견
+   - 사용자 통찰: "33분 전에 8개 이벤트 발생" - 시간 지연 문제였음
+   - 원인: Meta Events Manager의 정상적인 데이터 파이프라인 지연 (15분~1시간)
+   - 불필요한 300ms 대기 코드 제거 (커밋: 46a00f4)
+   - 교훈: 플랫폼 데이터 지연을 코드 문제로 오판하지 말 것
+
+**구현 파일**:
+- `components/MetaPixel.tsx`: Client Component로 픽셀 스크립트 로드
+- `app/layout.tsx`: MetaPixel 컴포넌트 통합
+- `components/chatbot/ChatInterface.tsx`: Lead 이벤트 발송 (saveLeadData 함수)
+- `types/meta-pixel.d.ts`: TypeScript 타입 정의
+
+**핵심 교훈**:
+- Next.js 15 환경변수는 Server Component에서 빌드 타임 번들링 안 됨
+- Client Component (`'use client'`)와 `useEffect` 필수
+- Meta Events Manager는 15분~1시간 지연 정상 (Test Events도 최대 1분)
+- 문제 없는 코드에 불필요한 지연/수정 추가하지 말 것
+- 사용자 피드백이 때로는 기술적 진단보다 정확함
 
 ## 향후 개선사항
 - ~~실제 SMS 프로바이더 통합~~ ✅ (멀티 프로바이더 지원 완료)
