@@ -10,6 +10,7 @@ import { Message, ChatState, LeadData, ChatFlowMap, ChatStep } from '@/lib/types
 import { staticQuestionService } from '@/lib/chat/static-question-service';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
+import { MetaPixelDebug } from '../MetaPixelDebug';
 
 export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(true);
@@ -191,12 +192,17 @@ export function ChatInterface() {
   };
 
   const handleVerificationComplete = async () => {
+    console.log('[ChatInterface] 🎯 handleVerificationComplete 호출됨');
+    console.log('[ChatInterface] 전화번호:', phoneNumber);
+    console.log('[ChatInterface] 기존 리드 데이터:', chatState.leadData);
+
     const updatedLeadData: LeadData = {
       ...chatState.leadData,
       phone: phoneNumber,
       verified: true
     };
 
+    console.log('[ChatInterface] 💾 saveLeadData 호출 시작...');
     await saveLeadData(updatedLeadData);
   };
 
@@ -214,6 +220,30 @@ export function ChatInterface() {
 
       if (!response.ok) {
         throw new Error('Failed to save lead');
+      }
+
+      console.log('[ChatInterface] ✅ Lead saved successfully to database');
+
+      try {
+        console.log('[ChatInterface] 🔍 Meta Pixel 확인 중...');
+        console.log('[ChatInterface] - window 객체:', typeof window);
+        console.log('[ChatInterface] - window.fbq 존재:', typeof window !== 'undefined' && !!window.fbq);
+
+        if (typeof window !== 'undefined' && window.fbq) {
+          console.log('[ChatInterface] 📤 Meta Pixel Lead 이벤트 발송 시작...');
+          window.fbq('track', 'Lead', {
+            content_name: '88 Company 상담 신청',
+            content_category: '정부지원사업 컨설팅',
+            value: 0,
+            currency: 'KRW',
+          });
+          console.log('[ChatInterface] ✅ Meta Pixel Lead event sent');
+        } else {
+          console.log('[ChatInterface] ℹ️ Meta Pixel not available');
+          console.log('[ChatInterface] - NEXT_PUBLIC_META_PIXEL_ID가 설정되지 않았거나 스크립트 로딩 실패');
+        }
+      } catch (pixelError) {
+        console.error('[ChatInterface] ⚠️ Meta Pixel error (non-critical):', pixelError);
       }
 
       const completeStep = chatFlow['complete'];
@@ -347,6 +377,7 @@ export function ChatInterface() {
           </div>
         </div>
       )}
+      <MetaPixelDebug />
     </div>
   );
 }

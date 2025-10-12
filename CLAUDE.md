@@ -167,7 +167,7 @@ export async function GET(
   - `ChatMessage.tsx`: 메시지 표시 컴포넌트
   - `ChatInput.tsx`: 사용자 입력 컴포넌트
   - `VerificationInput.tsx`: 전화번호 인증 컴포넌트
-- **`scripts/`**: 유틸리티 및 마이그레이션 스크립트 (17개 핵심 + 32개 아카이브)
+- **`scripts/`**: 유틸리티 및 마이그레이션 스크립트 (15개 핵심 + 45개 아카이브)
   - **배포**:
     - `deploy-production.bat/sh`: 프로덕션 배포 스크립트
   - **테스트** (test-runner.ts를 통해 실행):
@@ -177,7 +177,7 @@ export async function GET(
     - `test-database.ts`: 데이터베이스 테스트
     - `test-verification.ts`: 인증 플로우 테스트
     - `test-admin-auth.ts`: 관리자 인증 테스트
-  - **백업** (NEW):
+  - **백업**:
     - `backup-database.ts`: 데이터베이스 백업 스크립트 (leads, questions, verification_codes)
     - `setup-backup-tables.ts`: 백업 테이블 설정
     - `execute-backup-sql.ts`: SQL 백업 실행
@@ -187,9 +187,10 @@ export async function GET(
   - **유틸리티**:
     - `run-sql-update.ts`: SQL 업데이트 실행
     - `clear-localstorage.js`: localStorage 초기화
-  - **아카이브** (`scripts/archive/`): 참고용 스크립트 32개 보관
+  - **아카이브** (`scripts/archive/`): 참고용 스크립트 45개 보관
     - 마이그레이션 스크립트 (migrate-to-supabase.ts, migrate-questions-to-supabase.ts)
     - 일회성 작업 스크립트 (add-*, check-*, fix-*, update-* 등)
+    - 진단 스크립트 (check-questions-order.ts, check-db-schema.ts, check-actual-data.ts 등)
 
 ## 중요 개발 참고사항
 
@@ -224,6 +225,9 @@ ADMIN_PASSWORD=your_admin_password  # 관리자 페이지 접근 비밀번호 (�
 
 # 개발 설정
 SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작동)
+
+# 메타 픽셀 설정 (선택 사항)
+NEXT_PUBLIC_META_PIXEL_ID=your_pixel_id  # Meta Events Manager에서 확인 (숫자로만 구성)
 
 ```
 
@@ -263,17 +267,18 @@ SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작�
 - 폴백 메시지는 제거됨 - 데이터베이스에서만 관리
 
 **표준 대화 단계**:
-1. 환영 메시지 (예비창업자 여부)
-2. 정부지원사업 경험
-3. 사업 아이템
-4. 학력 및 전공
-5. 현재 직업 상태
-6. 지역
-7. 성별
-8. 나이
-9. 이름 수집
-10. 전화번호 입력 및 인증
-11. 완료 메시지
+1. 환영 메시지 (예비창업자 여부) - order_index 0
+2. 정부지원사업 경험 - order_index 1, step_1
+3. 사업 아이템 - order_index 2, step_2
+4. 사업 아이템 상세 - order_index 3, step_3
+5. 지역 - order_index 4, step_4
+6. 성별 - order_index 5, step_5
+7. 나이 - order_index 6, step_6
+8. 학력 및 전공 - order_index 7, step_7
+9. 현재 직업 - order_index 8, step_8
+10. 이름 수집 - order_index 9, step_9
+11. 전화번호 입력 및 인증 - order_index 10, step_10
+12. 완료 메시지 - order_index 999
 
 ### 데이터 저장 전략
 - **기본**: Supabase PostgreSQL 데이터베이스 (영구 저장, 도메인 독립적)
@@ -356,6 +361,37 @@ lsof -ti:3000 | xargs kill -9
 - X-XSS-Protection: 1; mode=block
 - Strict-Transport-Security: HSTS 적용
 
+## 메타 픽셀 전환 추적 (Meta Pixel Conversion Tracking)
+
+### 개요
+챗봇에서 전화번호 인증까지 완료하고 데이터베이스에 리드가 저장되면, 메타 픽셀 Lead 이벤트가 자동으로 발송되어 광고 성과를 추적합니다.
+
+### 트리거 조건
+✅ **리드 확보 완료 시점**:
+1. 사용자가 모든 챗봇 질문에 답변
+2. 전화번호 입력 및 SMS 인증 완료
+3. 데이터베이스에 리드 데이터 저장 성공
+
+### 구현 위치
+- **PageView 이벤트**: `app/layout.tsx` (페이지 로드 시 자동)
+- **Lead 이벤트**: `components/chatbot/ChatInterface.tsx` > `saveLeadData` 함수
+- **타입 정의**: `types/meta-pixel.d.ts`
+
+### 안전성 보장
+- 메타 픽셀 ID가 없어도 챗봇 정상 작동
+- 메타 픽셀 로딩 실패 시에도 리드 저장 프로세스 영향 없음
+- try-catch 블록으로 에러 격리
+- 콘솔 로그로 디버깅 지원
+
+### 설정 방법
+1. `.env.local`에 `NEXT_PUBLIC_META_PIXEL_ID` 추가
+2. Vercel 환경 변수 설정 (프로덕션)
+3. 개발 서버 재시작 후 테스트
+4. Facebook Pixel Helper로 이벤트 확인
+
+### 상세 가이드
+전체 설정, 테스트, 디버깅 방법은 [META_PIXEL_GUIDE.md](88-company-web/META_PIXEL_GUIDE.md) 참조
+
 ## 알려진 문제와 해결방법
 
 ### Tailwind CSS v4 호환성 문제
@@ -431,6 +467,53 @@ lsof -ti:3000 | xargs kill -9
   - Vercel Production Branch 설정 확인 필수
   - Preview vs Production 배포 환경 구분 명확히
   - CDN 캐시 Age 값으로 최신 배포 여부 확인 가능
+
+### 챗봇 질문 API 매핑 버그 수정 (2025-10-10)
+**문제**: 질문 7,8번(학력/전공, 현재 직업) 답변이 leads 테이블에 제대로 저장되지 않음
+- 증상:
+  - 질문 7번(학력/전공) 답변이 education 컬럼에 저장되지 않음
+  - 질문 8번(현재 직업) 답변이 occupation 컬럼에 저장되지 않음
+  - name 컬럼에 education 데이터가 잘못 저장됨 (예: "건대 기계과", "고졸")
+- 원인:
+  - `/api/leads/route.ts`의 잘못된 step→column 매핑 로직
+  - 실제 데이터베이스 질문 순서와 코드 매핑 불일치
+  - order_index 기반 step ID 생성 방식 미이해
+- 해결:
+  - **진단 스크립트 생성**:
+    - `check-questions-order.ts`: 실제 데이터베이스 질문 순서 확인
+    - `check-db-schema.ts`: education, occupation 컬럼 존재 여부 확인
+    - `check-actual-data.ts`: 저장된 리드 데이터 검증
+  - **API 매핑 수정**: `/api/leads/route.ts`에서 올바른 매핑 적용
+    ```typescript
+    // 수정 전 (잘못된 매핑)
+    education: body.step_4 || body.education || '',
+    occupation: body.step_5 || body.occupation || '',
+    name: body.step_9 || body.name || '',
+
+    // 수정 후 (올바른 매핑)
+    region: body.step_4 || body.region || '',           // Q4
+    gender: body.step_5 || body.gender || '',           // Q5
+    age: body.step_6 || body.age || '',                 // Q6
+    education: body.step_7 || body.education || '',     // Q7
+    occupation: body.step_8 || body.occupation || '',   // Q8
+    name: body.step_9 || body.name || '',               // Q9
+    ```
+- 확인 방법:
+  ```bash
+  # 데이터베이스 질문 순서 확인
+  npx tsx scripts/check-questions-order.ts
+
+  # 스키마 검증
+  npx tsx scripts/check-db-schema.ts
+
+  # 실제 데이터 확인
+  npx tsx scripts/check-actual-data.ts
+  ```
+- 교훈:
+  - 가정하지 말고 실제 데이터베이스 내용을 항상 확인
+  - order_index → step_X 생성 로직 정확히 이해 필요
+  - 진단 스크립트로 문제 원인을 명확히 파악 후 수정
+  - 스키마와 코드, 실제 데이터 모두 일치 확인 필수
 
 ### 모듈 구조 개선
 **개선사항**: 코드베이스 모듈화 및 타입 정의 통합
@@ -730,6 +813,37 @@ curl https://www.88-company.com | grep -E "og:|icon"
 - 배포 확인 시 브라우저 하드 리프레시 필수
 - SNS 플랫폼마다 캐시 디버깅 도구 사용 필요
 - 파일 최적화는 성능과 직결됨
+
+### 프로젝트 클린업 및 코드 정리 (2025-10-10)
+**변경사항**: 스크립트 아카이브 정리 및 코드 품질 개선
+
+**스크립트 정리**:
+- **아카이브 이동 (11개)**: 일회성 진단/추가/업데이트 스크립트
+  - 진단: check-complete-message.ts, check-production-questions.ts, check-questions-order.ts, check-db-schema.ts, check-actual-data.ts
+  - 추가: add-complete-message.ts, add-welcome-message.ts, add-welcome-direct.ts, add-welcome-simple.ts, add-welcome-final.ts
+  - 업데이트: update-welcome-message.ts
+- **최종 구조**: 15개 핵심 스크립트 + 45개 아카이브
+  - 핵심: 배포(2), 테스트(6), 백업(3), 복구(2), 유틸리티(2)
+
+**코드 품질 개선**:
+- **미사용 변수 제거**: API 라우트 및 컴포넌트에서 8곳
+  - app/api/verify/route.ts: normalizedPhone, request (3곳)
+  - app/api/test-sms/route.ts: request
+  - components/chatbot/VerificationInput.tsx: error (2곳)
+  - lib/chat/static-question-service.ts: currentIndex, value
+- **Naming Convention**: 미사용 파라미터에 `_` 프리픽스 추가로 의도 명시
+
+**성과**:
+- 프로젝트 구조 단순화 (26개 → 15개 메인 스크립트, 43% 감소)
+- ESLint 이슈 8개 해결 (미사용 변수 경고 제거)
+- 코드 가독성 향상 및 유지보수성 개선
+- 일회성 스크립트 체계적 아카이브 관리
+
+**교훈**:
+- 정기적인 스크립트 정리로 프로젝트 구조 명확성 유지
+- 일회성 작업 완료 후 즉시 아카이브 이동
+- ESLint 규칙 준수로 코드 품질 지속적 개선
+- 미사용 변수는 `_` 프리픽스로 의도 명시
 
 ## 향후 개선사항
 - ~~실제 SMS 프로바이더 통합~~ ✅ (멀티 프로바이더 지원 완료)

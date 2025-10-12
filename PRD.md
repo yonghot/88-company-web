@@ -414,6 +414,21 @@ main (production)
 - CI/CD 파이프라인 구축
 - Seoul 리전 (icn1) 설정
 
+✅ **메타 픽셀 전환 추적 (Meta Pixel Conversion Tracking)** (2025-10-11)
+- 리드 확보 시 Meta Pixel Lead 이벤트 자동 발송
+- 페이지 로드 시 PageView 이벤트 자동 발송
+- 안전한 에러 격리 (픽셀 실패 시에도 챗봇 정상 작동)
+- 조건부 렌더링 (픽셀 ID 없어도 앱 정상 작동)
+- 트리거 조건: 전화번호 인증 완료 + 데이터베이스 저장 성공 시점
+- Meta Events Manager를 통한 광고 성과 추적 가능
+- 디버깅 컴포넌트 (개발 모드 전용 상태 표시)
+- 구현 파일:
+  - `app/layout.tsx`: Meta Pixel 기본 스크립트 (PageView 이벤트)
+  - `components/chatbot/ChatInterface.tsx`: Lead 이벤트 발송
+  - `types/meta-pixel.d.ts`: TypeScript 타입 정의
+  - `components/MetaPixelDebug.tsx`: 디버깅 컴포넌트
+  - `META_PIXEL_GUIDE.md`: 포괄적인 구현 가이드
+
 ✅ **코드 구조 최적화 (2025-09-14)**
 - 모듈화된 아키텍처 구현 (lib/chat, lib/sms, lib/database)
 - 타입 정의 통합 및 중앙 관리
@@ -472,6 +487,7 @@ main (production)
 | 2025-10-04 | v4.2 | **Admin 페이지 테이블 완성, Favicon 설정, 보안 강화, 코드 정리** | - |
 | 2025-10-04 | v4.3 | **TTL 기반 캐시 무효화 및 백업 시스템 구현** | - |
 | 2025-10-04 | v4.4 | **소셜 미디어 메타데이터 캐싱 문제 해결 및 최적화 가이드** | - |
+| 2025-10-11 | v4.5 | **메타 픽셀 전환 추적 구현 - 광고 성과 측정 시스템** | - |
 
 ---
 

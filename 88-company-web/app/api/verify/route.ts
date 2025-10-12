@@ -179,9 +179,7 @@ export async function POST(request: Request) {
         );
       }
 
-      // 전화번호를 숫자만으로 정규화 (verification-service와 일치시키기 위함)
-      const normalizedPhone = cleanPhone; // 이미 숫자만 포함
-      const result = await service.sendVerificationCode(phone); // 원본 형식 그대로 전달
+      const result = await service.sendVerificationCode(phone);
 
       if (isProduction) {
         console.log('[VERIFY API] Send result:', {
@@ -309,7 +307,7 @@ export async function POST(request: Request) {
  * Headers:
  * - Authorization: Bearer {ADMIN_SECRET_KEY}
  */
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     // 관리자 권한 체크
     if (!(await isAdmin())) {
@@ -366,7 +364,7 @@ export async function GET(request: Request) {
  * OPTIONS /api/verify
  * CORS preflight 요청 처리
  */
-export async function OPTIONS(request: Request) {
+export async function OPTIONS(_request: Request) {
   return new NextResponse(null, {
     status: 200,
     headers: {

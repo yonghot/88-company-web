@@ -88,7 +88,7 @@ export async function GET(request: Request) {
  * POST /api/test-sms/health
  * NHN Cloud 헬스체크 API
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     // 관리자 권한 체크
     if (!(await checkAdminAuth())) {

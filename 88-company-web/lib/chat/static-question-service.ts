@@ -237,9 +237,9 @@ export class StaticQuestionService {
   private createNextStepFunction(
     question: ChatQuestion,
     nextQuestion: ChatQuestion | undefined,
-    currentIndex: number
+    _currentIndex: number
   ): (value?: string) => string {
-    return (value?: string) => {
+    return (_value?: string) => {
       if (question.type === 'phone') return 'phoneVerification';
       
       if (nextQuestion) {

@@ -96,7 +96,7 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
           setError(errorMessage);
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setError('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
     } finally {
       setIsSending(false);
@@ -133,10 +133,12 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
       const data = await response.json();
 
       if (response.ok && data.verified) {
+        console.log('[VerificationInput] ✅ 인증 성공! 1.5초 후 다음 단계로 이동');
         setIsVerified(true);
 
         // 성공 애니메이션
         setTimeout(() => {
+          console.log('[VerificationInput] 🎯 onVerify 콜백 호출 시작');
           onVerify(code);
         }, 1500);
       } else {
@@ -157,7 +159,7 @@ export function VerificationInput({ phoneNumber, onVerify, onBack, disabled = fa
           inputRef.current.focus();
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setError('인증 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
