@@ -238,6 +238,10 @@ export function ChatInterface() {
             currency: 'KRW',
           });
           console.log('[ChatInterface] ✅ Meta Pixel Lead event sent');
+
+          console.log('[ChatInterface] ⏳ 네트워크 요청 완료 대기 중 (300ms)...');
+          await new Promise(resolve => setTimeout(resolve, 300));
+          console.log('[ChatInterface] ✅ Lead 이벤트 전송 완료 대기 완료');
         } else {
           console.log('[ChatInterface] ℹ️ Meta Pixel not available');
           console.log('[ChatInterface] - NEXT_PUBLIC_META_PIXEL_ID가 설정되지 않았거나 스크립트 로딩 실패');
