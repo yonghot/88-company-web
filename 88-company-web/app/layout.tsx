@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import MetaPixel from "@/components/MetaPixel";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased h-screen overflow-hidden bg-background`}
       >
         <MetaPixel />
+        <GoogleAnalytics />
         {children}
       </body>
     </html>

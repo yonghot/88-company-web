@@ -229,6 +229,9 @@ SHOW_DEMO_CODE=true  # 개발 시 인증번호 표시 (demo 모드에서만 작�
 # 메타 픽셀 설정 (선택 사항)
 NEXT_PUBLIC_META_PIXEL_ID=your_pixel_id  # Meta Events Manager에서 확인 (숫자로만 구성)
 
+# Google Analytics 설정 (선택 사항)
+NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=G-MCQKEEVRHL  # Google Analytics Measurement ID
+
 ```
 
 ### 디자인 시스템
@@ -422,6 +425,56 @@ console.log('[ChatInterface] Lead event sent');
 
 ### 상세 가이드
 전체 설정, 테스트, 디버깅 방법은 [META_PIXEL_GUIDE.md](88-company-web/META_PIXEL_GUIDE.md) 참조
+
+## Google Analytics 추적 (Google Analytics Tracking)
+
+### 개요
+웹사이트 방문자 행동 분석 및 트래픽 추적을 위한 Google Analytics 4 (GA4) 통합
+
+### 구현 위치
+- **Google Analytics 스크립트**: `components/GoogleAnalytics.tsx` (Client Component)
+- **타입 정의**: `types/google-analytics.d.ts`
+- **통합**: `app/layout.tsx`에서 모든 페이지에 자동 적용
+
+### 자동 추적 이벤트
+- **page_view**: 페이지 로드 시 자동 발송
+- **기타 이벤트**: GA4 자동 수집 이벤트 (스크롤, 클릭, 파일 다운로드 등)
+
+### 안전성 보장
+- Measurement ID가 없어도 웹사이트 정상 작동
+- Google Analytics 로딩 실패 시에도 앱 기능에 영향 없음
+- try-catch 블록으로 에러 격리
+- 콘솔 로그로 디버깅 지원
+
+### 설정 방법
+1. `.env.local`에 `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` 추가
+   ```env
+   NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=G-MCQKEEVRHL
+   ```
+2. Vercel 환경 변수 설정 (프로덕션)
+3. 개발 서버 재시작 후 테스트
+4. Google Analytics 실시간 보고서로 확인
+
+### 검증 방법
+```javascript
+// 브라우저 콘솔에서 확인
+console.log('[GoogleAnalytics] 초기화:', typeof window.gtag);
+console.log('dataLayer:', window.dataLayer);
+
+// Network 탭에서 확인
+// https://www.googletagmanager.com/gtag/js?id=G-MCQKEEVRHL
+// https://www.google-analytics.com/g/collect?...
+```
+
+### 데이터 확인
+- **실시간 보고서**: 즉시 확인 가능 (Google Analytics 대시보드)
+- **표준 보고서**: 24~48시간 후 완전한 데이터 반영
+
+### 구현 패턴
+메타 픽셀과 동일한 Client Component 패턴 사용:
+- `'use client'` 지시자로 클라이언트 컴포넌트 선언
+- `useEffect`를 통한 스크립트 동적 주입
+- Next.js 15 Server Component 환경변수 번들링 문제 회피
 
 ## 알려진 문제와 해결방법
 
