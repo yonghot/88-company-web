@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   keywords: "예비창업자를 위한 최저가 토털 솔루션",
   authors: [{ name: "88 Company" }],
   icons: {
-    icon: "/88-logo.png",
-    apple: "/88-logo.png",
+    icon: "/88_logo_circle.png",
+    apple: "/88_logo_circle.png",
   },
   openGraph: {
     title: "에이티에잇 컴퍼니",
